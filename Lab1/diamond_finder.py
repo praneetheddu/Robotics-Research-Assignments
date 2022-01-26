@@ -4,6 +4,7 @@ import shutil
 import cv2 as cv
 import numpy as np
 import os
+import imutils
 from imutils.object_detection import non_max_suppression
 
 
@@ -14,9 +15,6 @@ def printCVinfo():
 def matchImage():
     # load template
     template = cv.imread('template.jpg', 0)
-    # store template width and height
-    w, h = template.shape[::-1]
-    # cv.imshow('Template', template)
 
     # create output dir
     shutil.rmtree("output_imgs")
@@ -31,26 +29,36 @@ def matchImage():
             print('Could not load img.')
         img_gray = cv.cvtColor(img_rgb, cv.COLOR_BGR2GRAY)
 
-        # execute the match function
-        res = cv.matchTemplate(img_gray, template, 5)
-        # get the match result with a threshold
-        threshold = 0.8
-        (loc_y, loc_x) = np.where(res >= threshold)
-
-        # There usually are many duplicated rectangles for the same target
         rects = []
-        for pt in zip(loc_x, loc_y):
-            rects.append((pt[0], pt[1], pt[0] + w, pt[1] + h))
+        # modify the template size in 0.1-1.5 scale of original size
+        for scale in np.linspace(0.1, 1.5, 50):
+            # resize the template
+            re_temp = imutils.resize(template, width=int(template.shape[1] * scale),
+                                     height=int(template.shape[0] * scale))
+
+            # store template width and height
+            rw, rh = re_temp.shape[::-1]
+
+            # execute the match function
+            res = cv.matchTemplate(img_gray, re_temp, 5)
+            # get the match result with a threshold
+            threshold = 0.95
+            (loc_y, loc_x) = np.where(res >= threshold)
+
+            # There usually are many duplicated rectangles for the same target
+            for pt in zip(loc_x, loc_y):
+                rects.append((pt[0], pt[1], pt[0] + rw, pt[1] + rh))
+
         # merge near rectangles to a single one
         pick = non_max_suppression(np.array(rects))
 
         # draw the rectangles and output their coordinates
-        for (start_x,start_y, end_x,end_y) in pick:
-            cv.rectangle(img_rgb, (start_x, start_y),(end_x,end_y), (0, 0, 255), 1)
+        for (start_x, start_y, end_x, end_y) in pick:
+            cv.rectangle(img_rgb, (start_x, start_y), (end_x, end_y), (0, 0, 255), 1)
             print('[' + file + ' ' + str(start_x) + ' ' + str(start_y) + ']')
 
         # write processed image into the output dir
-        cv.imwrite('output_imgs/'+file, img_rgb)
+        cv.imwrite('output_imgs/' + file, img_rgb)
 
         # show each image
         # cv.imshow('Detected', img_rgb)
