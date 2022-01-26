@@ -25,7 +25,7 @@ def find_diamond(temp, input_dir, output_dir):
     # load all images from input dir and store them in array
     for file in os.listdir(input_dir):
         # load the images and convert to gray0
-        img_rgb = cv.imread(input_dir + file)
+        img_rgb = cv.imread(input_dir + "/" + file)
         if img_rgb is None:
             print('Could not load img.')
         img_gray = cv.cvtColor(img_rgb, cv.COLOR_BGR2GRAY)
@@ -62,7 +62,7 @@ def find_diamond(temp, input_dir, output_dir):
             diamond.append([start_x, start_y])
 
         # write processed image into the output dir
-        cv.imwrite(output_dir + file, img_rgb)
+        cv.imwrite(output_dir + "/" + file, img_rgb)
 
         # show each image
         # cv.imshow('Display window', img_rgb)
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     template = cv.imread('template.jpg', 0)
 
     # find diamonds in all images
-    dic = find_diamond(template, 'input_imgs/', 'output_imgs')
+    dic = find_diamond(template, 'input_imgs', 'output_imgs')
 
     print(dic)
 
