@@ -1,3 +1,8 @@
+# project file
+Lab1/output_imgs/
+Lab1/input_imgs/
+Lab1/test/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -109,7 +114,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
+.idea/
 # Spyder project settings
 .spyderproject
 .spyproject
