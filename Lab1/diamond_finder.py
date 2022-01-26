@@ -13,22 +13,22 @@ import imutils
 import configparser
 from imutils.object_detection import non_max_suppression
 
-# Print iterations progress
+"""
+Call in a loop to create terminal progress bar
+@params:
+    iteration   - Required  : current iteration (Int)
+    total       - Required  : total iterations (Int)
+    prefix      - Optional  : prefix string (Str)
+    suffix      - Optional  : suffix string (Str)
+    decimals    - Optional  : positive number of decimals in percent complete (Int)
+    length      - Optional  : character length of bar (Int)
+    fill        - Optional  : bar fill character (Str)
+    printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+"""
 def printProgressBar(iteration, total, prefix='',
                      suffix='', decimals=1, length=100,
                      fill='█', printEnd="\r"):
-    """
-    Call in a loop to create terminal progress bar
-    @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
-        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
-    """
+
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + '-' * (length - filledLength)
@@ -42,11 +42,17 @@ def printCVinfo():
     print('OpenCV ' + cv.__version__)
 
 
-# Find all diamonds
-# @tmp: template need to match
-# @input_dir: input image directory
-# @output_dir: output image directory
-# @return dictionary
+"""
+Find all diamonds
+@params
+    @tmp         - Required:  template need to match
+    @input_dir   - Required:  input image directory
+    @output_dir  - Required: output image directory
+    @show_image  - Optional: Display image with annotations
+    @threshold   - Optional: threshold for template matching
+    @verbose     - Optional: print file name and pixel locations to terminal
+    @return dictionary
+"""
 def find_diamond(template, input_dir, output_dir, show_image=False, 
                  threshold=0.95, verbose=False):
     """Find red diamonds in every image using template matching."""
@@ -119,6 +125,7 @@ if __name__ == '__main__':
     output_dir = str(params['TEMPLATE-MATCHING']['output_dir'])
     threshold = float(params['TEMPLATE-MATCHING']['threshold'])
     verbose = params.getboolean("TEMPLATE-MATCHING", "verbose")
+    template_file = str(params['TEMPLATE-MATCHING']['template_file'])
     
     # create output dir
     if os.path.isdir(output_dir) is True:
@@ -126,7 +133,7 @@ if __name__ == '__main__':
     os.mkdir(output_dir)
 
     # load template
-    template = cv.imread('template.jpg', 0)
+    template = cv.imread(template_file, 0)
 
     # find diamonds in all images
     print("Running template matching on input directory: {}"
