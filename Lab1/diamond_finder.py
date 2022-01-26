@@ -118,7 +118,7 @@ if __name__ == '__main__':
     input_dir = str(params['TEMPLATE-MATCHING']['input_dir'])
     output_dir = str(params['TEMPLATE-MATCHING']['output_dir'])
     threshold = float(params['TEMPLATE-MATCHING']['threshold'])
-    verbose = bool(params['TEMPLATE-MATCHING']['threshold'])
+    verbose = params.getboolean("TEMPLATE-MATCHING", "verbose")
     
     # create output dir
     if os.path.isdir(output_dir) is True:
