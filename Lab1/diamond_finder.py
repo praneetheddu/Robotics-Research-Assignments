@@ -17,7 +17,7 @@ def matchImage():
     template = cv.imread('template.jpg', 0)
 
     # create output dir
-    shutil.rmtree("output_imgs")
+    # shutil.rmtree("output_imgs")
     os.mkdir("output_imgs")
 
     # load all images from input dir and store them in array
