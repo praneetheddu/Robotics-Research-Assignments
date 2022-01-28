@@ -53,9 +53,10 @@ Find all diamonds
     @verbose     - Optional: print file name and pixel locations to terminal
     @return dictionary
 """
-def find_diamond(template, input_dir, output_dir, show_image=False, 
+def find_diamond(template="template.jpg", input_dir="input_imgs", output_dir="output_imgs", show_image=False, 
                  threshold=0.95, verbose=False):
     """Find red diamonds in every image using template matching."""
+    template = cv.imread(template, 0)
     dictionary = {}
     # load all images from input dir and store them in array
     for i, file in enumerate(os.listdir(input_dir)):
@@ -138,8 +139,7 @@ if __name__ == '__main__':
     # find diamonds in all images
     print("Running template matching on input directory: {}"
           .format(input_dir))
-    dic = find_diamond(template, input_dir, output_dir,
-                       threshold=threshold, verbose=verbose)
+    dic = find_diamond()
     
     print(dic)
     print("Template matching complete. Images are stored in directory name: {}"
