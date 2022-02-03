@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node pkg="team_x_object_follower" type="find_object.py" name="find_object" output="screen"/>
+  <node pkg="team_x_object_follower" type="rotate_robot.py" name="rotate_robot" output="screen"/>
+
+</launch>
