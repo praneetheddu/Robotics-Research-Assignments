@@ -19,6 +19,11 @@ cd catkin_ws && catkin_make
 ```
 roslaunch turtlebot3_gazebo turtlebot3_world.launch 
 ```
+* Run the real robot
+```
+roslaunch turtlebot3_bringup turtlebot3_robot.launch
+roslaunch turtlebot3_bringup turtlebot3_rpicamera.launch
+```
 * Run the launch file to run our codes
 ```
 roslaunch team_x_object_follower object_follow.launch
