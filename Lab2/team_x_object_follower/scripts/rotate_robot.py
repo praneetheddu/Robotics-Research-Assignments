@@ -24,6 +24,7 @@ def pos_callback(data):
     pos[0] = data.x
     pos[1] = data.y
     pos[2] = data.z
+    
     # prepare the command
     cmd = Twist()
     # cmd range from -2~2
