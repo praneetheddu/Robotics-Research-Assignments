@@ -14,7 +14,7 @@ import cv2 as cv
 from cv_bridge import CvBridge, CvBridgeError
 from imutils.object_detection import non_max_suppression
 import imutils
-
+import time
 
 bridge = CvBridge()
 # load template
@@ -24,7 +24,7 @@ template = cv.imread("/home/burger/catkin_ws/src/team_x_object_follower/template
 if template is None:
     print('Could not load temp.')
 
-threshold = 0.86
+threshold = 0.82
 object_x = 320
 object_y = 240
 pub = rospy.Publisher('/object_pos', Point, queue_size=1)
@@ -38,6 +38,7 @@ def image_callback(img_msg):
     object_y = 240
     rate = rospy.Rate(10)  # 10hz
     # rospy.sleep(1)
+    diamond_found = False
     try:
         # rospy.loginfo("received image of type: %s", img_msg.format)
         img_rgb = bridge.compressed_imgmsg_to_cv2(img_msg, "rgb8")
@@ -67,15 +68,17 @@ def image_callback(img_msg):
 	# There usually are many duplicated rectangles for the same target
 	for pt in zip(loc_x, loc_y):
 	    rects.append((pt[0], pt[1], pt[0] + rw, pt[1] + rh))
-	if rects is None:
+	
+        if rects is None:
 	    # no template found. don't move the robot
 	    rospy.info("no object found")
-            msg.x = 320
- 	    msg.y = 240
-	    msg.z = 0
-	    pub.publish(msg)
-	    return
-
+            if (last_stamp - time.time() > 0.8):
+                msg.x = 320
+ 	        msg.y = 240
+	        msg.z = 0
+	        pub.publish(msg)
+	        return
+        diamond_found = True
         # merge near rectangles to a single one
         pick = non_max_suppression(np.array(rects))
 
@@ -101,6 +104,7 @@ def image_callback(img_msg):
         # rospy.loginfo("object pos: x-%f y-%f z-%f", msg.x, msg.y, msg.z)
         # publish the object position
         pub.publish(msg)
+        last_stamp = time.time()
     except CvBridgeError as e:
         rospy.logerr("CvBridge Error: {0}".format(e))
     rate.sleep()

@@ -28,16 +28,17 @@ def pos_callback(data):
     # prepare the command
     cmd = Twist()
     # cmd range from -2~2
-    if pos[0] > 340:
-        cmd.angular.z = -(pos[0]-320)/720
+    if pos[0] > 9000:
+	cmd.angular.z = 0
+    elif pos[0] > 310:
+        cmd.angular.z = -3.0 * ((pos[0]-320)/720) + (-0.28)
         rospy.loginfo("object pos: %f , on the right, vel:%f", pos[0], cmd.angular.z)
 
     elif pos[0] < 300:
-        cmd.angular.z = -(pos[0]-320)/720
+        cmd.angular.z = -1.45 * (pos[0]-320)/720
         rospy.loginfo("object pos: %f , on the left, vel:%f", pos[0], cmd.angular.z)
     else:
-        cmd.angular.z = 0
-    # publish the angular velocity cmd
+        cmd.angular.z = 0    # publish the angular velocity cmd
     pub.publish(cmd)
     # make sure the messages are published in 10hz
     rate.sleep()
@@ -54,7 +55,7 @@ def robot_controller():
     # name for our 'listener' node so that multiple listeners can
     # run simultaneously.
     rospy.init_node('controller', anonymous=True)
-    rospy.Subscriber('/object_pos', Point, pos_callback,queue_size =1)
+    rospy.Subscriber('/imageLocation', Point, pos_callback,queue_size =1)
 
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()
