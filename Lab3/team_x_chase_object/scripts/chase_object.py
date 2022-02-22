@@ -6,57 +6,124 @@
 # Feb 03, 2022
 
 #  ros
+import math
+
 import rospy
-from geometry_msgs.msg import Point
+from geometry_msgs.msg import Pose2D
 from geometry_msgs.msg import Twist
 
-pos = [0, 0, 0]
-pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
+###################################
+## VARIABLE DECLARATION AND SETUP
+###################################
+desire_dis = 0.3
+desire_ang = 0
+
+kp_dis = 1
+ki_dis = 0.1
+kd_dis = 0.1
+
+kp_ang = 1
+ki_ang = 0.05
+kd_ang = 0.05
+
+dt = 0.01
+total_dis = 0
+pre_dis = 0
+total_ang = 0
+pre_ang = 0
+
+dis_x = 0
+dis_y = 0
+ang = 0
 
 """
 subscribe the object position and update the commands
 """
 def pos_callback(data):
-    # set publish rate (cannot influence the subscribe rate)
-    rate = rospy.Rate(10)  # 10hz
-    # rospy.loginfo("object position: %f, %f, %f", data.x, data.y, data.z)
-    pos[0] = data.x
-    pos[1] = data.y
-    pos[2] = data.z
-    # prepare the command
-    cmd = Twist()
-    # angular vel range from -2~2
-    if pos[0] > 640:
-        cmd.angular.z = (640-pos[0])/320
-        rospy.loginfo("object is on the right, z-vel:%f", cmd.angular.z)
+    # Message Type [Pose2D]:
+    # This expresses a position and orientation on a 2D manifold.
+    # float64 x
+    # float64 y
+    # float64 theta
+    global dis_x
+    global dis_y
+    global ang
+    dis_x = data.x
+    dis_y = data.y
+    ang = data.theta
 
-    elif pos[0] <= 640:
-        cmd.angular.z = (640-pos[0])/320
-        rospy.loginfo("object is on the left, z-vel:%f", cmd.angular.z)
 
-    # publish the angular velocity cmd
-    pub.publish(cmd)
-    # make sure the messages are published in 10hz
-    rate.sleep()
+def pid_controller():
+    global dis_x
+    global dis_y
+    global ang
+    global total_dis
+    global pre_dis
+    global total_ang
+    global pre_ang
+    # set publish rate (control frequency)
+    rate = rospy.Rate(100)  # 100hz
+    while not rospy.is_shutdown():
+        # distance pid
+        dis = math.sqrt(pow(dis_x,2) + pow(dis_y,2))
+        diff_dis = dis - desire_dis
+        total_dis = total_dis + diff_dis * dt
+        v = kp_dis * diff_dis + ki_dis * total_dis + kd_dis * (diff_dis - pre_dis) / dt
+        pre_dis = diff_dis
+        rospy.loginfo(" vel-cmd %f,  object_dis %f", v, dis_x)
+
+        # angular pid
+        diff_ang = desire_ang - ang
+        total_ang += diff_ang * dt
+        w = kp_ang * diff_ang + ki_ang * total_ang + kd_ang * (diff_ang - pre_ang) / dt
+        pre_ang = ang
+        rospy.loginfo(" ang-cmd %f,  object_ang %f", w, ang)
+
+        # prepare the commands
+        cmd = Twist()
+        # limit the cmd range
+        if v > 0:
+            cmd.linear.x = min(0.22, v)
+        else:
+            cmd.linear.x = max(-0.22,v)
+        if w > 0:
+            cmd.angular.z = min(1.0, w)
+        else:
+            cmd.angular.z = max(-1.0, w)
+
+        # publish the angular velocity cmd
+        pub.publish(cmd)
+        # make sure the messages are published in 100hz
+        rate.sleep()
 
 """
 create a ros node to subscribe the object position
 and call the callback function to update the vel commands
 """
-def robot_controller():
+def init():
 
     # In ROS, nodes are uniquely named. If two nodes with the same
     # name are launched, the previous one is kicked off. The
     # anonymous=True flag means that rospy will choose a unique
     # name for our 'listener' node so that multiple listeners can
     # run simultaneously.
-    rospy.init_node('controller', anonymous=True)
+    rospy.init_node('pid_controller', anonymous=True)
 
-    rospy.Subscriber('/object_pos', Point, pos_callback)
+    # position and angular subscriber
+    rospy.Subscriber('/object_pos', Pose2D, pos_callback)
 
+    # command publisher
+    global pub
+    pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
+    # run the PID controller
+    pid_controller()
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()
 
+
 if __name__ == '__main__':
-    robot_controller()
+    try:
+        init()
+    except rospy.ROSInterruptException:
+        pass
 
