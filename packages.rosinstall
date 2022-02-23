@@ -1,1 +1,1 @@
-- git: {local-name: Robotics_Packages, uri: 'https://raw.githubusercontent.com/praneetheddu/Robotics-Research-Assignments/lab-3-restructure/packages.rosinstall?token=GHSAT0AAAAAABRHLXXTZ4H76OVWQNFXEYBEYQVV5YQ', version: 'lab-3-restructure'}
+- git: {local-name: Robotics_Packages, uri: 'https://github.com/praneetheddu/Robotics-Research-Assignments/blob/lab-3-restructure/packages.rosinstall', version: 'lab-3-restructure'}
