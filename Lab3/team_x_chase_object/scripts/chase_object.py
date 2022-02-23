@@ -11,6 +11,7 @@ import math
 import rospy
 from geometry_msgs.msg import Pose2D
 from geometry_msgs.msg import Twist
+from sensor_msgs.msg import LaserScan
 
 ###################################
 ## VARIABLE DECLARATION AND SETUP
@@ -52,6 +53,11 @@ def pos_callback(data):
     dis_y = data.y
     ang = data.theta
 
+"""
+Use LiDAR readings for PID control
+"""
+def lidar_callback(msg):
+    rospy.loginfo_throttle(1, "Distance = %2.2f m", msg.ranges[0])
 
 def pid_controller():
     global dis_x
@@ -107,11 +113,11 @@ def init():
     # anonymous=True flag means that rospy will choose a unique
     # name for our 'listener' node so that multiple listeners can
     # run simultaneously.
-    rospy.init_node('pid_controller', anonymous=True)
+    rospy.init_node('chase_object', anonymous=True)
 
     # position and angular subscriber
     rospy.Subscriber('/object_pos', Pose2D, pos_callback)
-
+    sub = rospy.Subscriber('/scan', LaserScan, lidar_callback)
     # command publisher
     global pub
     pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
