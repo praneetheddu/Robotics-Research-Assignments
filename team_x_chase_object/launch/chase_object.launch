@@ -1,18 +1,22 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="model" default="$(env TURTLEBOT3_MODEL)"/>
-  <arg name="sim" default="false"/>
+  <arg name="sim" default="true"/>
+  <arg name="world" default="empty_world.launch"/>
 
   <!-- Turtlebot3 -->
+  <!-- joint state publisher -->
+  <include file="$(find turtlebot3_bringup)/launch/turtlebot3_remote.launch" />
+  
   <group unless="$(arg sim)">
-    <!-- real -->
+    <!-- real -->screen
     <include file="$(find turtlebot3_bringup)/launch/turtlebot3_robot.launch"/>
     <include file="$(find turtlebot3_bringup)/launch/turtlebot3_rpicamera.launch"/>
   </group>
 
   <group if="$(arg sim)">
     <!-- gazebo -->
-    <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_world.launch">
+    <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_$(arg world)">
       <arg name="model" value="$(arg model)" />
     </include>
   </group>

@@ -36,7 +36,7 @@ pre_ang = 0
 dis_x = 0
 dis_y = 0
 ang = 0
-
+is_ball_present = False
 """
 subscribe the object position and update the commands
 """
@@ -49,6 +49,7 @@ def pos_callback(data):
     global dis_x
     global dis_y
     global ang
+    global is_ball_present
     dis_x = data.x
     dis_y = data.y
     ang = data.theta
@@ -57,9 +58,18 @@ def pos_callback(data):
 Use LiDAR readings for PID control
 """
 def lidar_callback(msg):
-    rospy.loginfo_throttle(1, "Distance = %2.2f m", msg.ranges[0])
+    if (any(msg.ranges) < 2):
+        rospy.loginfo_throttle(1, "Distance = %2.2f m", msg.ranges[0])
 
-def pid_controller():
+def pid_controller(stop=False):
+    # prepare the commands
+    cmd = Twist()
+    
+    if stop:
+        cmd.linear.x = 0.0
+        cmd.angular.z = 0.0
+        return
+
     global dis_x
     global dis_y
     global ang
@@ -71,22 +81,20 @@ def pid_controller():
     rate = rospy.Rate(100)  # 100hz
     while not rospy.is_shutdown():
         # distance pid
-        dis = math.sqrt(pow(dis_x,2) + pow(dis_y,2))
-        diff_dis = dis - desire_dis
+        # dis = math.sqrt(pow(dis_x, 2) + pow(dis_y, 2))
+        diff_dis = dis_x - desire_dis
         total_dis = total_dis + diff_dis * dt
         v = kp_dis * diff_dis + ki_dis * total_dis + kd_dis * (diff_dis - pre_dis) / dt
         pre_dis = diff_dis
-        rospy.loginfo(" vel-cmd %f,  object_dis %f", v, dis_x)
+        rospy.loginfo_throttle(5, " vel-cmd %f,  object_dis %f", v, dis_x)
 
         # angular pid
         diff_ang = desire_ang - ang
         total_ang += diff_ang * dt
         w = kp_ang * diff_ang + ki_ang * total_ang + kd_ang * (diff_ang - pre_ang) / dt
         pre_ang = ang
-        rospy.loginfo(" ang-cmd %f,  object_ang %f", w, ang)
+        rospy.loginfo_throttle(5, " ang-cmd %f,  object_ang %f", w, ang)\
 
-        # prepare the commands
-        cmd = Twist()
         # limit the cmd range
         if v > 0:
             cmd.linear.x = min(0.22, v)
@@ -122,7 +130,7 @@ def init():
     global pub
     pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
     # run the PID controller
-    pid_controller()
+    pid_controller(stop=True)
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()
 
