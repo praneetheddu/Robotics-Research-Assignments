@@ -1,9 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-# Lab-3 Detect an object with the camera. 
-# Yinuo Wang, Praneeth Erwin Eddu
-# Feb 03, 2022
+# Detect an object with the camera. 
 
 import rospy
 from sensor_msgs.msg import CompressedImage
@@ -26,6 +22,9 @@ lower= np.array([100,50,50],np.uint8) # Array (H,S,V) for the lower threshold bo
 upper= np.array([120,255,255],np.uint8) # Array (H,S,V) for the upper threshold bound of the HSV image
 error = np.array([13,100,100],np.uint8) # Array of error widths to create the upper and lower threshold bounds above.
 
+# lower and upper HSV ranges
+lower = np.array([162, 0, 30], np.uint8)
+upper = np.array([188, 165, 230], np.uint8)
 
 titleTracker = "Color Tracker"      # Debugging Image Title
 titleOriginal = "Original Image"    # Debugging Image Title
@@ -34,16 +33,17 @@ debug = False                        # True - shows the images. False - Does not
 
 width = 360                         # Width of the image, this is sent in our point message as the z-component to know the zero point in the frame.
 blurSize = 9                        # Blur Kernel Size
-morphOpSize = 5                     # Closing and Opening Kernel Size
+morphOpSize = 10                     # Closing and Opening Kernel Size
 
 
 maxObjects = 1                      # Max number of object to detect.
-minObjectArea = 50                 # Min number of pixels for an object to be recognized.
+minObjectArea = 150                 # Min number of pixels for an object to be recognized.
 
 start = False                       # Set to true when first image is acquired and will start the program.
 
 update = False                      # True - When a new point has been found and can be published. False - Otherwise.
-
+show_window = False
+init = True
 
 ###################################
 ## Function Declaration
@@ -60,7 +60,6 @@ def mouseEvent(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
         lower = imgHSV[y,x,:]
         upper = imgHSV[y,x,:]     
-
         originalH = lower[0]
 
         lower = cv2.subtract(lower,error)
@@ -128,6 +127,7 @@ def get_image(CompressedImage):
     global mask
     global imgMorphOps
     global imgTrack
+    global init
 
     # Needed parameters from outside this function (lazy and globaling them).
     global p
@@ -136,10 +136,10 @@ def get_image(CompressedImage):
     global morphOpSize
     global blurSize
     global width
-
+    
     # The "CompressedImage" is transformed to a color image in BGR space and is store in "imgBGR"
     imgBGR = bridge.compressed_imgmsg_to_cv2(CompressedImage, "bgr8")
-
+  
     # height and width of the image to pass along to the PID controller as the reference point.
     height, width = imgBGR.shape[:2]
 
@@ -177,6 +177,9 @@ def get_image(CompressedImage):
 
     # Once the first image has been processed set start to True to display.
     start = True
+    if init:
+	rospy.loginfo("Tracking is a GO! ...")
+	init = False
 
 
 
@@ -192,11 +195,11 @@ def Init():
     rospy.Subscriber("/raspicam_node/image/compressed",CompressedImage, get_image, queue_size=1, buff_size=2**24)
     
     #Initializate the node and gives a name, in this case, 'find_ball'
-    rospy.init_node('find_object', anonymous=True)
+    rospy.init_node('detectobject', anonymous=True)
 
     #Create a publisher that will be publishing Geometric message Points
     global pub
-    pub = rospy.Publisher('imageLocation', Point, queue_size=10)
+    pub = rospy.Publisher('imageLocation', Point, queue_size=1)
 
     #Create a debug publisher for image
     global pubDebug
@@ -218,7 +221,7 @@ if __name__ == '__main__':
 #rate = rospy.Rate(10)
 
 # Create Debugging Windows
-if(debug):
+if(show_window or debug):
     cv2.namedWindow(titleTracker, cv2.WINDOW_AUTOSIZE )
     cv2.moveWindow(titleTracker, 620, 50)
     cv2.namedWindow(titleMask, cv2.WINDOW_AUTOSIZE )
@@ -228,7 +231,8 @@ if(debug):
 
 # The mousecallback is connected to the "Original Image window" for the user to select the corresponding color
 if(debug):
-	cv2.setMouseCallback(titleOriginal,mouseEvent)
+    pass	
+    #cv2.setMouseCallback(titleOriginal,mouseEvent)
 
 while not rospy.is_shutdown():
     # This is the infinite loop that keep the program running
