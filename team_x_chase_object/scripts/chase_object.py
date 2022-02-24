@@ -22,6 +22,7 @@ import numpy as np
 MAX_SPEED = 1.5
 MAX_LINEAR_SPEED = 0.1
 MIN_SPEED = 0.15
+BETA = 1.35
 # Linear Distance Config
 desire_dis = 0.25
 kp_dis = 0.6
@@ -36,7 +37,7 @@ dis_y = 0
 # Angular Distance Config
 desired_ang = 0
 desired_ang_window = 0.03
-kp_ang = 4.0
+kp_ang = 2.8  #4.0
 ki_ang = 0.15
 kd_ang = 0.5
 total_ang = 0
@@ -52,6 +53,19 @@ TOLERANCE_THRESHOLD = 0.05
 
 # Other
 current_time = time.time()
+"""
+Use appropriate window
+"""
+def set_window_size(angle):
+    window_size = 1
+    if abs(angle) >= 0 and abs(angle) < 8:
+        window_size = 5
+    elif abs(angle) >= 8 and abs(angle) < 16:
+        window_size = 3
+    elif abs(angle) >= 16: 
+        window_size = 2
+    return window_size
+
 """
 subscribe the object position and update the commands
 """
@@ -81,6 +95,7 @@ def lidar_callback(msg):
     global ball_found
     global desire_dis
     global ang
+    global BETA
     # ball_found = True # Uncomment to measure distance only
     if not ball_found:
         # If no ball is detected, set distance to  0
@@ -95,11 +110,21 @@ def lidar_callback(msg):
             front = right + left
             # print(front)
             # dis_x = (sum(msg.ranges[len(msg.ranges) - (window // 2):len(msg.ranges)]) + sum(msg.ranges[: window // 2])) / window
-
             index = int(ang/3.14159*180)
+            '''
             dis_x = sum(front[179+index-5: 179+index+5]) / 11
+            '''
+            # ----------------- New Code below ----------------------------
+            if abs(index) > 12:
+                BETA = 0.7
+            else:
+                BETA = 1.35 
+            thresh = set_window_size(index)
+            dis_x = sum(front[179+index-thresh: 179+index+thresh]) / (2*thresh + 1)
+            rospy.loginfo_throttle(1.0, "index = %2.2f degrees, distance = %2.2f m", index, dis_x)
             # dis_x = (msg.ranges[0] + msg.ranges[1] + msg.ranges[359]) / 3
             # try to filt wrong recoganization
+            # ------------------------------------------------------------ 
             if dis_x > 1.0 or dis_x is 0.0:
                 dis_x = desire_dis
                 ball_found = False
@@ -135,7 +160,7 @@ def pid_controller(stop=False):
     global kd_ang
     global MIN_SPEED
     global MAX_LINEAR_SPEED
-
+    global BETA
 
     # set publish rate (control frequency)
     rate = rospy.Rate(100)  # 100hz
@@ -155,6 +180,7 @@ def pid_controller(stop=False):
             D = kd_dis * ((diff_dis - pre_dis) / dt)
             v = P + D
             pre_dis = diff_dis
+            
             # rospy.loginfo_throttle(1, " vel-cmd %f,  object_dis %f", v, dis_x)
 
             # angular pid
@@ -174,7 +200,7 @@ def pid_controller(stop=False):
             if v > 0:
                 cmd.linear.x = min(MAX_LINEAR_SPEED, v)
             else:
-                cmd.linear.x = max(-MAX_LINEAR_SPEED, v)
+                cmd.linear.x = max(-MAX_LINEAR_SPEED, v) * BETA
             if w >= 0:
                 cmd.angular.z = min(MAX_SPEED, w)
             else:
