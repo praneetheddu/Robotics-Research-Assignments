@@ -56,16 +56,16 @@ def mouseEvent(event, x, y, flags, param):
     global lower
     global upper
     global error
-    
+
     if event == cv2.EVENT_LBUTTONDOWN:
         lower = imgHSV[y,x,:]
-        upper = imgHSV[y,x,:]     
+        upper = imgHSV[y,x,:]
         originalH = lower[0]
 
         lower = cv2.subtract(lower,error)
         upper = cv2.add(upper,error)
 
-        # Deal with the circular Hue wrap.      
+        # Deal with the circular Hue wrap.
 	check_lower = np.uint16(originalH - error[0])
         check_upper = np.uint16(originalH - error[0])
         while(check_lower < 0):
@@ -94,8 +94,8 @@ def drawCOM(frame, x, y, name):
 def findObjects(binaryMatrix):
     #Finds the location of the desired object in the image.
     output = []
-    trash, contours, hierarchy = cv2.findContours(binaryMatrix, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # Contours the image to find blobs of the same color   
-    cont = sorted(contours, key = cv2.contourArea, reverse = True)[:maxObjects]                   # Sorts the blobs by size (Largest to smallest) 
+    trash, contours, hierarchy = cv2.findContours(binaryMatrix, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) # Contours the image to find blobs of the same color
+    cont = sorted(contours, key = cv2.contourArea, reverse = True)[:maxObjects]                   # Sorts the blobs by size (Largest to smallest)
 
     # Find the center of mass of the blob if there are any
     if hierarchy is not None:
@@ -106,10 +106,10 @@ def findObjects(binaryMatrix):
                 w = int(rect[1][0])
                 x = int(M['m10']/M['m00'])
                 y = int(M['m01']/M['m00'])
-		#if(debug):                
+		#if(debug):
                 cv2.drawContours(imgTrack, cont[i], -1, (255,0,0), 3) # Draws the contour.
                 drawCOM(imgTrack,x,y,name)
-                
+
 		if output == []:
                     output = [[x,w]]
                 else:
@@ -136,22 +136,22 @@ def get_image(CompressedImage):
     global morphOpSize
     global blurSize
     global width
-    
+
     # The "CompressedImage" is transformed to a color image in BGR space and is store in "imgBGR"
     imgBGR = bridge.compressed_imgmsg_to_cv2(CompressedImage, "bgr8")
-  
+
     # height and width of the image to pass along to the PID controller as the reference point.
     height, width = imgBGR.shape[:2]
 
     # Image used to draw things on!
     imgTrack = imgBGR.copy()
-    
+
     # Blur the image to reduce edges caused by noise or that are useless to us.
     imgBlur = cv2.GaussianBlur(imgBGR,(blurSize,blurSize),0)
 
     # Transform BGR to HSV to avoid lighting issues.
-    imgHSV = cv2.cvtColor(imgBlur, cv2.COLOR_BGR2HSV)	
-    
+    imgHSV = cv2.cvtColor(imgBlur, cv2.COLOR_BGR2HSV)
+
     # Threshold the image using the selected lower and upper bounds of the color of the object.
     mask = cv2.inRange(imgHSV, lower, upper)
 
@@ -178,8 +178,8 @@ def get_image(CompressedImage):
     # Once the first image has been processed set start to True to display.
     start = True
     if init:
-	rospy.loginfo("Tracking is a GO! ...")
-	init = False
+        rospy.loginfo("Tracking is a GO! ...")
+        init = False
 
 
 
@@ -187,13 +187,13 @@ def get_image(CompressedImage):
 def Init():
 
     # Creates the node, the publisher, and subscribes to the compressedImage.
-    
+
     #I declare that  the find_ball is subcribing to the Compressed Images node. Note the buff_size is due to the
     #  default buffer size being too small for some images and causing them to be built up in the publisher. Full
-    #  explanation here, 
+    #  explanation here,
     #  https://answers.ros.org/question/220502/image-subscriber-lag-despite-queue-1/?answer=220505?answer=220505#post-id-220505
     rospy.Subscriber("/raspicam_node/image/compressed",CompressedImage, get_image, queue_size=1, buff_size=2**24)
-    
+
     #Initializate the node and gives a name, in this case, 'find_ball'
     rospy.init_node('detectobject', anonymous=True)
 
@@ -231,12 +231,12 @@ if(show_window or debug):
 
 # The mousecallback is connected to the "Original Image window" for the user to select the corresponding color
 if(debug):
-    pass	
+    pass
     #cv2.setMouseCallback(titleOriginal,mouseEvent)
 
 while not rospy.is_shutdown():
     # This is the infinite loop that keep the program running
-    
+
     # If the first image arrived, the start = True
     if start:
 
@@ -265,7 +265,7 @@ while not rospy.is_shutdown():
             if (error[0] < 0):
                 error[0] = 0
             k = 0
-            rospy.loginfo("Color Error: %d",error[0])    
+            rospy.loginfo("Color Error: %d",error[0])
         elif k == 50: #number 2
             #Increase the Hue error
             error[0] = error[0] + 1
