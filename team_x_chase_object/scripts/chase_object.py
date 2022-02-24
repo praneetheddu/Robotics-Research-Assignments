@@ -19,12 +19,13 @@ import time
 ## VARIABLE DECLARATION AND SETUP
 ###################################
 MAX_SPEED = 1.0
-
+MAX_LINEAR_SPEED = 0.08
+MIN_SPEED = 0.15
 # Linear Distance Confif
-desire_dis = 0.2
-kp_dis = 0.6
+desire_dis = 0.30
+kp_dis = 0.15
 ki_dis = 0.1
-kd_dis = 0.1
+kd_dis = 0.10
 total_dis = 0
 pre_dis = 0
 dt = 0.01
@@ -32,10 +33,11 @@ dis_x = 0
 dis_y = 0
 
 # Angular Distance Config
-desire_ang = 0
-kp_ang = 1
-ki_ang = 0.05
-kd_ang = 0.05
+desired_ang = 0
+desired_ang_window = 0.03
+kp_ang = 0.67
+ki_ang = 0.15
+kd_ang = 0.40
 total_ang = 0
 pre_ang = 0
 ang = 0
@@ -44,7 +46,7 @@ ang = 0
 ball_found = False
 
 # LiDAR config
-window = 18
+window = 6
 TOLERANCE_THRESHOLD = 0.05
 
 # Other
@@ -55,6 +57,7 @@ subscribe the object position and update the commands
 def pos_callback(data):
     rate = rospy.Rate(10)  # 10hz	
     global ang
+    global ball_found
     
     if data.x > 1200 or data.y > 1200:
         # Ball is not detected
@@ -62,8 +65,9 @@ def pos_callback(data):
 	ang = 0
     else:
         ball_found = True
-        ang = (data.x - 360) / 
-    rospy.loginfo_throttle(3, "Ball's location = %2.2f degrees", ang)
+        ang = (data.x - 240) / 360
+    # ang = 0 # Uncomment to distance controller only
+    rospy.loginfo_throttle(2.3, "Ball's location = %2.2f degrees", ang)
 
 """
 Use LiDAR readings for PID control
@@ -71,7 +75,9 @@ Use LiDAR readings for PID control
 def lidar_callback(msg):
     global window
     global dis_x
+    global ball_found
     global desire_dis
+    # ball_found = True # Uncomment to measure distance only 
     if not ball_found:
 	# If no ball is detected, set distance to  0
         dis_x = desire_dis
@@ -80,8 +86,9 @@ def lidar_callback(msg):
     else:
         if (any(msg.ranges) < 2):
 	    # dis_x = (sum(msg.ranges[len(msg.ranges) - (window // 2):len(msg.ranges)]) + sum(msg.ranges[: window // 2])) / window
-            dis_x = msg.ranges[0]
-            rospy.loginfo_throttle(1, "Distance = %2.2f m", dis_x)
+	    dis_x = (msg.ranges[0] + msg.ranges[1] + msg.ranges[359]) / 3
+            # dis_x = msg.ranges[0]
+            rospy.loginfo_throttle(0.5, "Distance = %2.2f m", dis_x)
     
 
 
@@ -102,6 +109,16 @@ def pid_controller(stop=False):
     global total_ang
     global pre_ang
     global MAX_SPEED
+    global desire_dis
+    global desired_ang
+    global desired_ang_window
+    global kp_dis
+    global kd_dis
+    global kp_ang
+    global kd_ang
+    global MIN_SPEED
+    global MAX_LINEAR_SPEED
+
 
     # set publish rate (control frequency)
     rate = rospy.Rate(100)  # 100hz
@@ -115,23 +132,26 @@ def pid_controller(stop=False):
         D = kd_dis * ((diff_dis - pre_dis) / dt)
         v = P + D 
         pre_dis = diff_dis
-        rospy.loginfo_throttle(2, " vel-cmd %f,  object_dis %f", v, dis_x)
+        rospy.loginfo_throttle(1, " vel-cmd %f,  object_dis %f", v, dis_x)
 
         # angular pid
-        diff_ang = desire_ang - ang
+        diff_ang = desired_ang - ang
+        if abs(diff_ang) <= desired_ang_window:
+	    diff_ang = 0
+        
         total_ang += diff_ang * dt
         P = kp_ang * diff_ang
 	I = ki_ang * total_ang
-	D = kd_ang * (diff_ang - pre_ang) / dt
+	D = kd_ang * ((diff_ang - pre_ang) / dt)
 	w = P + D
-        pre_ang = ang
-        rospy.loginfo_throttle(2, " ang-cmd %f,  object_ang %f", w, ang)
+        pre_ang = diff_ang 
+        # rospy.loginfo_throttle(3, " ang-cmd %f,  object_ang %f", w, ang)
 
         # limit the cmd range
         if v > 0:
-            cmd.linear.x = min(0.22, v)
+            cmd.linear.x = min(MAX_LINEAR_SPEED, v)
         else:
-            cmd.linear.x = max(-0.22,v)
+            cmd.linear.x = max(-MAX_LINEAR_SPEED,v)
         if w > 0:
             cmd.angular.z = min(MAX_SPEED, w)
         else:
@@ -164,7 +184,6 @@ def init():
     pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
     # run the PID controller
     pid_controller(stop=False)
-    pid_controller(stop=True)
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()
 
