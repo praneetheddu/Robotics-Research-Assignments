@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   sensor_msgs
+  nav_msgs
   std_msgs
 #  cv_bridge
 #  opencv2
