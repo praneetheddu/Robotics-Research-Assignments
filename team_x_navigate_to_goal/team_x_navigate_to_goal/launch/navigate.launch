@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Lab4 -->
+  <node pkg="team_x_navigate_to_goal" type="get_object_range.py" name="get_object_range" output="screen"/>
+
+  <node pkg="team_x_navigate_to_goal" type="go_to_goal.py" name="go_to_goal" output="screen"/>
+
+</launch>
