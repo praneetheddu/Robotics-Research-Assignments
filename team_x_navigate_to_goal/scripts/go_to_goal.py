@@ -75,9 +75,8 @@ odom_x = 0
 odom_y = 0
 odom_ang = 0
 
+
 """quaternion to euler angles"""
-
-
 def qua2rpy(qua):
     x = qua[0]
     y = qua[1]
@@ -111,6 +110,7 @@ def odom_callback(msg):
     odom_qua.append(msg.pose.pose.orientation.w)
     # print(odom_qua)
     odom_ang = qua2rpy(odom_qua)
+    rospy.loginfo_throttle(2, "odom angle = %f", odom_ang)
     linear_controller(stop=False)
 
 
@@ -124,7 +124,7 @@ def obs_callback(msg):
     ang = msg.z
 
 
-
+""" Get waypoints from txt file and store it in a list"""
 def get_waypoints():
     global wp_list
     global wp
@@ -132,9 +132,9 @@ def get_waypoints():
         wp_list = f.readlines()
         f.close()
 
-    
 
 def linear_controller(stop=False):
+    cmd = Twist()
     if stop:
         cmd.linear.x = 0.0
         cmd.angular.z = 0.0
@@ -161,8 +161,16 @@ def linear_controller(stop=False):
             wp = (float(coordinates[0]) , float(coordinates[1]))
             rospy.loginfo("Coordinates recieved: (%2.2f , %2.2f)", 
                             wp[0], wp[1])
+            
+            # Turn in place to orient to the next waypoint
+            if abs(odom_x - 90) > 45:
+                turn_value = odom_x - 90.0
+            elif abs(odom_y - 90) > 45:
+                turn_value = odom_y - 90.0
+            rospy.loginfo("Turning in place with turn angle = %f", turn_value)
+            angular_controller(turn_value, stop=False)
+            
             # wp_reached = False 
-    cmd = Twist()
 
     # PID
     # pos_x = odom_msg.pose.pose.position.x
@@ -200,9 +208,39 @@ def linear_controller(stop=False):
         cmd.linear.x = 0.0
         cmd.angular.z = 0.0
 
-def angular_controller(stop=False):
-    pass
+def angular_controller(diff_angle, stop=False):
+    cmd = Twist()
+    rate = rospy.Rate(100)
+    # Get waypoints 
+    global wp
+    # odom
+    global odom_x
+    global odom_y
+    global odom_ang
+    
+    # PID
+    # global diff_ang
 
+    target_rad = 90*math.pi/180
+    if (diff_angle < 0): 
+        target_rad *= -1
+    
+    total_ang = 0
+    pre_ang = 0
+    while abs(odom_ang - 90.0) >= 5:
+        diff_ang = desired_ang - target_rad
+        total_ang += diff_ang * dt
+        P = kp_ang * diff_ang
+        I = ki_ang * total_ang
+        D = kd_ang * ((diff_ang - pre_ang) / dt)
+        w = P + D
+        pre_ang = diff_ang
+        if w >= 0:
+            cmd.angular.z = min(MAX_SPEED, w)
+        else:
+            cmd.angular.z = max(-MAX_SPEED, w)
+        pub.publish(cmd)
+        rate.sleep()
 
 def init():
     # In ROS, nodes are uniquely named. If two nodes with the same
