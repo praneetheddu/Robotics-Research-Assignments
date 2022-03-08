@@ -6,20 +6,26 @@
 # Mar 08, 2022
 
 #  ros
-import math
-
 import rospy
-# from geometry_msgs.msg import Pose2D
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point
 # from chase_object import pid_controller
 import time
 import numpy as np
+import math
 
 ###################################
 ## VARIABLE DECLARATION AND SETUP
 ###################################
+# following variables are defined in robot frame
+obs_x = 0
+obs_y = 0
+obs_ang = 0
+# following variables are defined in world frame
+odom_x = 0
+odom_y = 0
+odom_ang = 0
 
 MAX_SPEED = 1.5
 MAX_LINEAR_SPEED = 0.10
