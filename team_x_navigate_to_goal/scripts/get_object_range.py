@@ -74,7 +74,7 @@ def lidar_callback(msg):
                 # obs_dis = sum_obs / len(real_obs)
                 # center_index = len(real_obs) / 2
                 # print(center_index)
-                angular_z = 1.0 - float(center_index) / (float(len(front_mod))/2.0)  # if angular >0 -- right, angular <0 --left
+                angular_z = float(center_index) / (float(len(front_mod))/2.0) - 1.0 # if angular <0 -- right, angular >0 --left
                 obs_msg.x = obs_dis * np.cos(angular_z)
                 obs_msg.y = obs_dis * np.sin(angular_z)
                 obs_msg.z = angular_z
