@@ -33,8 +33,8 @@ def lidar_callback(msg):
 
     if (any(msg.ranges) < 2):
         # the range we care about is the semi-cycle in front of robot
-        left = msg.ranges[0:89]
-        right = msg.ranges[270: 359]
+        left = msg.ranges[0:59]
+        right = msg.ranges[300: 359]
         front = right + left
 
         # modify the raw data

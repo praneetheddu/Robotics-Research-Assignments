@@ -10,7 +10,6 @@ import rospy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Point
-# from chase_object import pid_controller
 import time
 import numpy as np
 import math
@@ -27,56 +26,22 @@ odom_x = 0
 odom_y = 0
 odom_ang = 0
 
-MAX_SPEED = 1.5
-MAX_LINEAR_SPEED = 0.10
-MIN_SPEED = 0.15
-BETA = 1.35
-
-# Linear Controller Config
-desire_dis = 0.25
 kp_dis = 0.6
 ki_dis = 0.1
 kd_dis = 0.05
-total_dis = 0
-pre_dis = 0
+
+kp_ang = 2.8
+kd_ang = 0.5
 dt = 0.01
 
-# waypoints
-wp_list = []
-wp = ((0 , 0))
-wp_reached = False
-wp_ind = 0
-
-# Angular Distance Config
-desired_ang = 0
-desired_ang_window = 0.03
-kp_ang = 2.8  #4.0
-ki_ang = 0.15
-kd_ang = 0.5
-total_ang = 0
-pre_ang = 0
-ang = 0
-ranges = []
-# Object Config
-ball_found = False
-
-# LiDAR config
-window = 6
-TOLERANCE_THRESHOLD = 0.05
-
-# Other
-current_time = time.time()
-
-obs_x = 0
-obs_y = 0
-obs_ang = 0
-# following variables are defined in world frame
-odom_x = 0
-odom_y = 0
-odom_ang = 0
-
-
+pre_x = 0.0
+pre_y = 0.0
+desired_pos_x = [1.5, 1.5, 0.0]
+desired_pos_y = [0.0, 1.4, 1.4]
+point_count = 0
 """quaternion to euler angles"""
+
+
 def qua2rpy(qua):
     x = qua[0]
     y = qua[1]
@@ -110,8 +75,7 @@ def odom_callback(msg):
     odom_qua.append(msg.pose.pose.orientation.w)
     # print(odom_qua)
     odom_ang = qua2rpy(odom_qua)
-    rospy.loginfo_throttle(2, "odom angle = %f", odom_ang)
-    linear_controller(stop=False)
+    print(odom_ang)
 
 
 """get obstacle position in the robot frame"""
@@ -124,133 +88,70 @@ def obs_callback(msg):
     ang = msg.z
 
 
-""" Get waypoints from txt file and store it in a list"""
-def get_waypoints():
-    global wp_list
-    global wp
+def pid_controller(stop=False):
+    global point_count
+    global dt
+    global kp_dis
+    global kd_dis
+    global ki_dis
+    global pre_x
+    global pre_y
+    global pre_ang
+    global kp_ang
+    global kd_ang
 
-    # uncomment below when using it on the robot
-    # with open('/home/burger/catkin_ws/src/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:
-    with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:
-        wp_list = f.readlines()
-        f.close()
+    cmd  = Twist()
+    rate = rospy.Rate(100)  # 100hz
+    while not rospy.is_shutdown():
+        diff_x = desired_pos_x[point_count] - odom_x
+        diff_y = desired_pos_y[point_count] - odom_y
+        vx = 0
+        vy = 0
+        w = 0
 
+        if abs(diff_x) < 0.01 and abs(diff_y) < 0.01 and point_count<3:
 
-def linear_controller(stop=False):
-    cmd = Twist()
-    if stop:
-        cmd.linear.x = 0.0
-        cmd.angular.z = 0.0
-        return
-    
-    # Get waypoints 
-    global wp
-    global wp_list
-    global wp_reached
-    global wp_ind
-    
-    # odom
-    global odom_x
-    global odom_y
-    global odom_ang
+            # total_dis = total_dis + (diff_x * dt)
+            Px = (kp_dis * diff_x)
+            # I = (ki_dis * total_dis)
+            Dx = kd_dis * ((diff_x - pre_x) / dt)
+            vx = Px + Dx
+            pre_x = diff_x
 
-    # linear dist
-    global total_dis
-    
-    if wp_reached:
-        # Once the way point is reached, cue the next waypoint
-        if wp_ind < len(wp_list):
-            coordinates = wp_list[wp_ind].split(" ")
-            wp = (float(coordinates[0]) , float(coordinates[1]))
-            rospy.loginfo("Coordinates recieved: (%2.2f , %2.2f)", 
-                            wp[0], wp[1])
-            
-            # Turn in place to orient to the next waypoint
-            if abs(odom_x - 90) > 45:
-                turn_value = odom_x - 90.0
-            elif abs(odom_y - 90) > 45:
-                turn_value = odom_y - 90.0
-            rospy.loginfo("Turning in place with turn angle = %f", turn_value)
-            angular_controller(turn_value, stop=False)
-            
-            wp_reached = False
+            # diff_y = desired_pos_y[point_count] - odom_y
+            # total_dis = total_dis + (diff_x * dt)
+            Py = (kp_dis * diff_y)
+            # I = (ki_dis * total_dis)
+            Dy = kd_dis * ((diff_y - pre_y) / dt)
+            vy = Py + Dy
+            pre_y = diff_y
 
-    # PID
-    # pos_x = odom_msg.pose.pose.position.x
-    # pos_y = odom_msg.pose.pose.position.y
-    diff_dis = wp[0] - odom_x
-    
-    # If waypoint is reached, move to the next waypoint
-    if diff_dis < 0.01:
-        wp_reached = True
-        if wp_ind < len(wp_list):
-            rospy.loginfo("Waypoint %d reached!", 
-                            wp_ind)
-            wp_ind += 1
-    else:
-        wp_reached = False
-    
-    if not wp_reached:
+            # arrive path point
+            desired_ang = math.pi / 2
+            diff_ang = desired_ang - odom_ang
 
-        rate = rospy.Rate(100)
-        total_dis += (diff_dis * dt)
-        pre_dis = diff_dis
-        P = kp_dis * diff_dis
-        I = ki_dis * total_dis
-        D = kd_dis * ((diff_dis - pre_dis) / dt)
-        v = P + D
-        
-        if v > 0:
-            cmd.linear.x = min(MAX_LINEAR_SPEED, v)
-        else:
-            cmd.linear.x = max(-MAX_LINEAR_SPEED, v) * BETA
-        rospy.loginfo_throttle(1, " vel-cmd: %f,  x-pos: %f, y-pos: %f", 
-                                cmd.linear.x, odom_x, odom_y)
+            if abs(diff_ang) < 0.005:
+                point_count = point_count+1
+                rospy.loginfo("reach %d th point", point_count)
+            else:
+                # angular pid
+                # total_ang += diff_ang * dt
+                Pw = kp_ang * diff_ang
+                # I = ki_ang * total_ang
+                Dw = kd_ang * ((diff_ang - pre_ang) / dt)
+                w = Pw + Dw
+                pre_ang = diff_ang
+
+            cmd.linear.x = vx
+            cmd.linear.y = vy
+            cmd.angular.z = w
+            rospy.loginfo_throttle(1, " vel-cmd %f,  odom-x %f", cmd.linear.x, odom_x)
+            rospy.loginfo_throttle(3, " ang-cmd %f,  odom-ang %f", cmd.angular.z, odom_ang)
+
+            # publish the angular velocity cmd
         pub.publish(cmd)
+        # make sure the messages are published in 100hz
         rate.sleep()
-    else:
-        cmd.linear.x = 0.0
-        cmd.angular.z = 0.0
-
-def angular_controller(diff_angle, stop=False):
-    cmd = Twist()
-    rate = rospy.Rate(100)
-    # Get waypoints 
-    global wp
-    # odom
-    global odom_x
-    global odom_y
-    global odom_ang
-    
-    # PID
-    # global diff_ang
-
-    target_rad = 90*math.pi/180
-    if (diff_angle < 0): 
-        target_rad *= -1
-    
-    total_ang = 0
-    pre_ang = 0
-    while abs(odom_ang - 90.0) >= 5:
-        diff_ang = desired_ang - target_rad
-        total_ang += diff_ang * dt
-        P = kp_ang * diff_ang
-        I = ki_ang * total_ang
-        D = kd_ang * ((diff_ang - pre_ang) / dt)
-        w = P + D
-        pre_ang = diff_ang
-        if w >= 0:
-            cmd.angular.z = min(MAX_SPEED, w)
-        else:
-            cmd.angular.z = max(-MAX_SPEED, w)
-        pub.publish(cmd)
-        rate.sleep()
-
-
-def obstacle_controller():
-
-
-
 
 
 def init():
@@ -268,9 +169,7 @@ def init():
     pub = rospy.Publisher('/cmd_vel', Twist, queue_size=5)
     # run the PID controller
     # pid_controller(stop=False)
-    
-    # spin() # simply keeps python from exiting until this node is stopped
-    get_waypoints()
+    # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()
 
 
