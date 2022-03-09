@@ -44,7 +44,7 @@ dt = 0.01
 # waypoints
 wp_list = []
 wp = ((0 , 0))
-wp_reached = True
+wp_reached = False
 wp_ind = 0
 
 # Angular Distance Config
@@ -170,7 +170,7 @@ def linear_controller(stop=False):
             rospy.loginfo("Turning in place with turn angle = %f", turn_value)
             angular_controller(turn_value, stop=False)
             
-            # wp_reached = False 
+            wp_reached = False
 
     # PID
     # pos_x = odom_msg.pose.pose.position.x
@@ -188,6 +188,7 @@ def linear_controller(stop=False):
         wp_reached = False
     
     if not wp_reached:
+
         rate = rospy.Rate(100)
         total_dis += (diff_dis * dt)
         pre_dis = diff_dis
@@ -241,6 +242,13 @@ def angular_controller(diff_angle, stop=False):
             cmd.angular.z = max(-MAX_SPEED, w)
         pub.publish(cmd)
         rate.sleep()
+
+
+def obstacle_controller():
+
+
+
+
 
 def init():
     # In ROS, nodes are uniquely named. If two nodes with the same
