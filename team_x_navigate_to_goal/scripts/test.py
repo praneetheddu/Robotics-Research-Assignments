@@ -132,7 +132,7 @@
 #     # Uncomment line below when running on robot
 #     # with open('/home/burger/catkin_ws/src/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:
 #     with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_navigate_to_goal/scripts/wayPoints.txt', 'r') as f:
-    
+
 #         wp_list = f.readlines()
 #         f.close()
 #     # print(len(wp_list))
@@ -299,7 +299,6 @@
 #         rate.sleep()
 
 
-
 # def obstacle_controller():
 #     global obs_x
 #     global obs_y
@@ -342,8 +341,7 @@
 #         pass
 
 
-
-#!/usr/bin/env python
+# !/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # Lab-4 Subscribe obstacle position and publish the robot desired linear and angular velocity cmd to low level motors
@@ -371,10 +369,10 @@ odom_x = 0
 odom_y = 0
 odom_ang = 0
 
-MAX_SPEED = 0.7 # 1.0
-MAX_LINEAR_SPEED = 0.10
+MAX_SPEED = 0.7  # 1.0
+MAX_LINEAR_SPEED = 0.08
 MIN_SPEED = 0.12
-BETA = 1.5 #1.35
+BETA = 1.5  # 1.35
 
 # waypoints
 wp_list = []
@@ -392,8 +390,8 @@ dt = 0.01
 
 # Angular Distance Config
 desired_ang = 0
-desired_ang_window = 0.02
-kp_ang = 0.8 # 4.0
+desired_ang_window = 0.01
+kp_ang = 1.5  # 4.0
 ki_ang = 0.15
 kd_ang = 0.6
 total_ang = 0
@@ -404,18 +402,21 @@ ranges = []
 
 # Other
 current_time = time.time()
-pub = rospy.Publisher('/cmd_vel', Twist, queue_size=1)
+pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 cmd = Twist()
 flag = 0
-"""quaternion to euler angles"""
 
 '''
 GTWP = Go to Waypoint
 TURN = Turn in place
 AO = Avoid obstacle
 '''
-MODES = ['GTWP', 'TURN', 'AO']
+MODES = ['GTWP', 'TURN'] #, 'AO']
 MODE = MODES[0]
+
+
+"""quaternion to euler angles"""
+
 
 def qua2rpy(qua):
     x = qua[0]
@@ -435,6 +436,8 @@ def qua2rpy(qua):
 
 
 """ get odometry data """
+
+
 def odom_callback(msg):
     global odom_x
     global odom_y
@@ -450,14 +453,42 @@ def odom_callback(msg):
     odom_ang = qua2rpy(odom_qua)
     # rospy.loginfo_throttle(2, "odom angle = %f", odom_ang)
 
+
+# def odom_callback(Odom):
+#     position = Odom.pose.pose.position
+#
+#     # Orientation uses the quaternion aprametrization.
+#     # To get the angular position along the z-axis, the following equation is required.
+#     q = Odom.pose.pose.orientation
+#     orientation = np.arctan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z))
+#
+#     if self.Init:
+#         # The initial data is stored to by subtracted to all the other values as we want to start at position (0,0) and orientation 0
+#         self.Init = False
+#         self.Init_ang = orientation
+#         self.globalAng = self.Init_ang
+#         Mrot = np.matrix([[np.cos(Init_ang), np.sin(Init_ang)], [-np.sin(Init_ang), np.cos(Init_ang)]])
+#         self.Init_pos.x = Mrot.item((0, 0)) * position.x + Mrot.item((0, 1)) * position.y
+#         self.Init_pos.y = Mrot.item((1, 0)) * position.x + Mrot.item((1, 1)) * position.y
+#         self.Init_pos.z = position.z
+#
+#     Mrot = np.matrix([[np.cos(self.Init_ang), np.sin(self.Init_ang)], [-np.sin(self.Init_ang), np.cos(self.Init_ang)]])
+#
+#     # We subtract the initial values
+#     self.globalPos.x = Mrot.item((0, 0)) * position.x + Mrot.item((0, 1)) * position.y - self.Init_pos.x
+#     self.globalPos.y = Mrot.item((1, 0)) * position.x + Mrot.item((1, 1)) * position.y - self.Init_pos.y
+#     self.globalAng = orientation - self.Init_ang
+
+
 def get_waypoints():
     global wp_list
     global wp
     # Uncomment line below when running on robot
-    # with open('/home/burger/catkin_ws/src/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:
-    with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_navigate_to_goal/scripts/wayPoints.txt', 'r') as f:
+    with open('/home/burger/catkin_ws/src/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:
+        # with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_navigate_to_goal/scripts/wayPoints.txt', 'r') as f:
         wp_list = f.readlines()
         f.close()
+
 
 get_waypoints()
 coordinates = wp_list[wp_ind].split(" ")
@@ -465,6 +496,7 @@ wp = (float(coordinates[0]), float(coordinates[1]))
 rospy.loginfo("Current Position: (%2.2f, %2.2f)", odom_x, odom_y)
 rospy.loginfo("Coordinates recieved: (%2.2f , %2.2f)",
               wp[0], wp[1])
+
 
 def obs_callback(msg):
     global dis_x
@@ -474,15 +506,17 @@ def obs_callback(msg):
     dis_y = msg.y
     ang = msg.z
 
-def linear_controller(stop=False):
+
+def goal_controller(stop=False):
     global cmd
     if stop:
         cmd.linear.x = 0.0
         cmd.angular.z = 0.0
         return
-    
+
     global MODE
     global flag
+
     # Get waypoints
     global wp
     global wp_list
@@ -494,24 +528,26 @@ def linear_controller(stop=False):
     global odom_y
     global odom_ang
 
-    # linear dist
+    # linear control
     global total_dis
     global pre_dis
 
-    # angular target
+    # angular control
     global target_ang
-    # flag = 0
+    global desired_ang
+    global desired_ang_window
+    global pre_ang
+
     if wp_reached == True:
         if wp_ind < len(wp_list):
-            rospy.loginfo("Waypoint %d reached!",
-                            wp_ind)
+            rospy.loginfo("Waypoint %d reached!", wp_ind-1)
             # Once the way point is reached, cue the next waypoint
             coord = wp_list[wp_ind].split(" ")
             wp = (float(coord[0]), float(coord[1]))
             rospy.loginfo("Current Position: (%2.2f, %2.2f)", odom_x, odom_y)
             rospy.loginfo("Next Coordinates recieved: (%2.2f , %2.2f)",
-                            wp[0], wp[1])
-            MODE = MODES[1] # Change to rotate in-place
+                          wp[0], wp[1])
+            MODE = MODES[1]  # Change to rotate in-place
             if abs(wp[0] - odom_x) > abs(wp[1] - odom_y):
                 flag = 0
             else:
@@ -519,44 +555,87 @@ def linear_controller(stop=False):
             rospy.loginfo_throttle(3, "flag = %d", flag)
         else:
             return
-    
+
     if MODE == 'GTWP':
         diff_dis = 0
-        
-        if flag == 0:
+        diff_ang = 0
+        cur_coord = wp_list[wp_ind].split(" ")
+        cur_wp = (float(cur_coord[0]), float(cur_coord[1]))
+        if wp_ind> 0:
+            pre_coord = wp_list[wp_ind-1].split(" ")
+            pre_wp = (float(pre_coord[0]), float(pre_coord[1]))
+        else:
+            pre_wp = (0.0,0.0)
+
+
+        if flag == 0: # move in x direction
             diff_dis = abs(wp[0] - odom_x)
-        elif flag == 1:
+            # Keep robot on track on y-axis when moving in x-dir
+            diff_ang = (wp[1] - odom_y)
+
+            if cur_wp[0] - pre_wp[0] < 0: # negative direction of x
+                diff_ang = -1 * diff_ang
+
+        elif flag == 1: # move in y direction
             diff_dis = abs(wp[1] - odom_y)
-        
-        total_dis += (diff_dis * dt)
+            # Keep robot on track on x-axis when moving in y-dir
+            diff_ang = (wp[0] - odom_x)
+
+            if cur_wp[1] - pre_wp[1] > 0: # positive direction of y
+                diff_ang = -1 * diff_ang
+
+        # PD controller for linear velocity
         pre_dis = diff_dis
         P = kp_dis * diff_dis
-        I = ki_dis * total_dis
         D = kd_dis * ((diff_dis - pre_dis) / dt)
-        # PD control 
         v = P + D
         # Ceil to a MAX Speed
         if v > 0:
             cmd.linear.x = min(MAX_LINEAR_SPEED, v)
         else:
             cmd.linear.x = max(-MAX_LINEAR_SPEED, v) * BETA
-        
-        rospy.loginfo_throttle(1, " vel-cmd: %f,  x-pos: %f, y-pos: %f",
-                                cmd.linear.x, odom_x, odom_y)
-        
+
+        # PD controller for angular velocity
+        if abs(diff_ang) <= desired_ang_window:
+            w = 0
+        else:
+            P = kp_ang * diff_ang
+            D = kd_ang * ((diff_ang - pre_ang) / dt)
+            w = P + D
+            pre_ang = diff_ang
+
+        cmd.angular.z = w + avoid_controller()
+
         # WP reached
-        if abs(diff_dis) < 0.005:
+        if abs(diff_dis) < 0.01:
             cmd.linear.x = 0
-            wp_reached = True
-            wp_ind += 1
             cmd.angular.z = 0
 
-def angular_controller(diff_angle, start_ang, stop=False):
+            wp_reached = True
+            wp_ind += 1
+
+
+def avoid_controller():
+
+    global obs_x
+    global obs_y
+    global obs_ang
+    k1 = 0.2
+    k2 = 0.1
+    k3 = 0.1
+    if obs_x != 0 and obs_y != 0 and obs_ang != 0: # found obstacles
+        w = k1 * (0.3 - obs_x) + k2 * (0.3 - obs_y) + k3 * (60 * math.pi / 180 - obs_ang)
+    else:
+        w = 0
+    return w
+
+
+def turn_controller(diff_angle, start_ang, stop=False):
     global cmd
     global MODE
     # Get waypoints
     global wp
-    
+
     # odom
     global odom_x
     global odom_y
@@ -566,89 +645,66 @@ def angular_controller(diff_angle, start_ang, stop=False):
     global target_ang
     global pre_ang
     global wp_reached
+
     target_ang = start_ang + diff_angle
-    
-    flag = 0
-    
+    greater_360 = 0
+
     if target_ang > 360:
         target_ang = target_ang - 360
         odom_ang = odom_ang - 360
-        flag = 1
+        greater_360 = 1
 
-    # if abs(odom_ang - target_ang) >= 1:
-    #     rospy.loginfo_throttle(3, "Turning ...")
-    #     if flag == 1 and odom_ang > target_ang:
-    #         odom_ang = odom_ang - 360
-    #     rospy.loginfo_throttle(1, "current %.2f, target %.2f", odom_ang, target_ang)
-    #     diff_ang = target_ang - odom_ang
-        
-    #     # PD Controller
-    #     P = kp_ang * diff_ang
-    #     D = kd_ang * ((diff_ang - pre_ang) / dt)
-    #     w = P + D  # + obstacle_controller()
-    #     pre_ang = diff_ang
-    #     if w >= 0:
-    #         cmd.angular.z = min(MAX_SPEED, w)
-    #     else:
-    #         cmd.angular.z = max(-MAX_SPEED, w)
-    #     cmd.linear.x = 0
-    # else:
-    #     cmd.angular.z = 0
-    #     rospy.loginfo_throttle(1, "Finished Turning!")
-    #     MODE = MODES[0] # Finished turning
-    
     rate = rospy.Rate(100)
-    while abs(odom_ang - target_ang) >= 1:
+    while abs(odom_ang - target_ang) >= 1.5:
 
-        if flag ==1 and odom_ang>target_ang:
+        if greater_360 == 1 and odom_ang > target_ang:
             odom_ang = odom_ang - 360
-        rospy.loginfo_throttle(1, "current %.2f, target %.2f", odom_ang, target_ang)
         diff_ang = target_ang - odom_ang
-        # total_ang += diff_ang * dt
         P = kp_ang * diff_ang
-        # I = ki_ang * total_ang
         D = kd_ang * ((diff_ang - pre_ang) / dt)
-        w = P + D  # + obstacle_controller()
+        w = P + D
         pre_ang = diff_ang
         if w >= 0:
             cmd.angular.z = min(MAX_SPEED, w)
         else:
             cmd.angular.z = max(-MAX_SPEED, w)
         cmd.linear.x = 0
-        # rospy.loginfo_throttle(1, "odom-x %.2f odom-y %.2f odom-ang %.2f", odom_x, odom_y, odom_ang)
+        rospy.loginfo_throttle(1, "target: %.2f  odom-ang %.2f", target_ang, odom_ang)
 
         pub.publish(cmd)
         rate.sleep()
     cmd.angular.z = 0
     wp_reached = False
     pub.publish(cmd)
-    rate.sleep()
+
     rospy.loginfo_throttle(1, "Finished Turning!")
-    MODE = MODES[0] # Finished turning
+    MODE = MODES[0]  # Finished turning
 
 
 ''' keep robot on track with off-axis as reference'''
+
+
 def tracking_controller():
     global odom_x
     global odom_y
     global flag
-    global desired_ang 
+    global desired_ang
     global desired_ang_window
     global pre_ang
     global cmd
-    
+
     if flag == 0:
         # Keep robot on track on y-axis when moving in x-dir
         ang = wp[1] - odom_y
     elif flag == 1:
         # Keep robot on track on x-axis when moving in y-dir
         ang = wp[0] - odom_x
-    
+
     diff_ang = desired_ang - ang
-    rospy.loginfo_throttle(1, "Desired heading = %2.2f , Current heading = %2.2f, odom reading = %2.2f", 
-                            desired_ang, ang, odom_y)
-    rospy.loginfo_throttle(1, "odom reading_x = %2.2f , odom reading_y = %2.2f", 
-                            odom_x, odom_y)
+    rospy.loginfo_throttle(1, "Desired heading = %2.2f , Current heading = %2.2f, odom reading = %2.2f",
+                           desired_ang, ang, odom_y)
+    rospy.loginfo_throttle(1, "odom reading_x = %2.2f , odom reading_y = %2.2f",
+                           odom_x, odom_y)
     if abs(diff_ang) <= desired_ang_window:
         w = 0
     else:
@@ -657,32 +713,38 @@ def tracking_controller():
         w = P + D
         pre_ang = diff_ang
         rospy.loginfo_throttle(1, "Angular speed = %2.2f", w)
-    
+
     cmd.angular.z = w
+
 
 def run_events():
     global MODE
     global cmd
     global flag
+    global odom_ang
+    global odom_x
+    global odom_y
+
     rate = rospy.Rate(100)
-    while not rospy.is_shutdown(): 
+    while not rospy.is_shutdown():
         if MODE == 'GTWP':
             rospy.loginfo_throttle(5, "Mode = GTWP, Driving to Way Point")
-            linear_controller(stop=False)
-            tracking_controller()
-            # TODO: ADD A BLENDING CONTROL
+            goal_controller(stop=False)
+            pub.publish(cmd)
+
         elif MODE == 'TURN':
-            rospy.loginfo_throttle(5, "Mode = TURN, Turning in Place!")
             turn_value = 0
             if abs(odom_x - wp[0]) > 0.05 or abs(odom_y - wp[1]) > 0.05:
                 turn_value = 90.0
 
-            rospy.loginfo_throttle(5, "Turning in place with turn angle = %f", turn_value)
+            rospy.loginfo_throttle(5, "Mode = TURN, Turning in Place with %f Degrees", turn_value)
             start_ang = odom_ang
-            angular_controller(turn_value, start_ang, stop=False)
-        
-        pub.publish(cmd)
+            turn_controller(turn_value, start_ang, stop=False)
+
+        rospy.loginfo_throttle(1, " vel-cmd: %f, ang-cmd: %f, x-pos: %f, y-pos: %f, heading: %f",
+                               cmd.linear.x, cmd.angular.z, odom_x, odom_y, odom_ang)
         rate.sleep()
+
 
 def init():
     # ROS Node
@@ -693,6 +755,7 @@ def init():
 
     run_events()
     rospy.spin()
+
 
 if __name__ == '__main__':
     try:
