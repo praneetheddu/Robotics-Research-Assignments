@@ -393,7 +393,7 @@ dt = 0.01
 # Angular Distance Config
 desired_ang = 0
 desired_ang_window = 0.02
-kp_ang = 1.25  # 4.0
+kp_ang = 0.8 # 4.0
 ki_ang = 0.15
 kd_ang = 0.6
 total_ang = 0
