@@ -50,7 +50,7 @@ wp_ind = 0
 # Angular Distance Config
 desired_ang = 0
 desired_ang_window = 0.03
-kp_ang = 2.8  #4.0
+kp_ang = 0.5  #2.8
 ki_ang = 0.15
 kd_ang = 0.5
 total_ang = 0
@@ -58,7 +58,8 @@ pre_ang = 0
 ang = 0
 ranges = []
 # Object Config
-ball_found = False
+heading_reached = True
+init = True
 
 # LiDAR config
 window = 6
@@ -110,7 +111,6 @@ def odom_callback(msg):
     odom_qua.append(msg.pose.pose.orientation.w)
     # print(odom_qua)
     odom_ang = qua2rpy(odom_qua)
-    rospy.loginfo_throttle(2, "odom angle = %f", odom_ang)
     linear_controller(stop=False)
 
 
@@ -128,10 +128,9 @@ def obs_callback(msg):
 def get_waypoints():
     global wp_list
     global wp
-
-    # uncomment below when using it on the robot
+    # Uncomment line below if running code on robot
     # with open('/home/burger/catkin_ws/src/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:
-    with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:
+    with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:        
         wp_list = f.readlines()
         f.close()
 
@@ -156,8 +155,12 @@ def linear_controller(stop=False):
 
     # linear dist
     global total_dis
+
+    # other
+    global init
+    global heading_reached
     
-    if wp_reached:
+    if wp_reached and heading_reached:
         # Once the way point is reached, cue the next waypoint
         if wp_ind < len(wp_list):
             coordinates = wp_list[wp_ind].split(" ")
@@ -166,14 +169,18 @@ def linear_controller(stop=False):
                             wp[0], wp[1])
             
             # Turn in place to orient to the next waypoint
-            if abs(odom_x - 90) > 45:
-                turn_value = odom_x - 90.0
-            elif abs(odom_y - 90) > 45:
-                turn_value = odom_y - 90.0
-            rospy.loginfo("Turning in place with turn angle = %f", turn_value)
-            angular_controller(turn_value, stop=False)
-            
-            # wp_reached = False 
+            if not init:
+                if abs(odom_x - 90) > 45:
+                    turn_value = odom_x - 90.0
+                elif abs(odom_y - 90) > 45:
+                    turn_value = odom_y - 90.0
+                rospy.loginfo("Turning in place with turn angle = %f", turn_value)
+                angular_controller(turn_value, stop=False)
+                heading_reached = False
+                
+                wp_reached = False
+            else:
+                init = False
 
     # PID
     # pos_x = odom_msg.pose.pose.position.x
@@ -185,7 +192,7 @@ def linear_controller(stop=False):
         wp_reached = True
         if wp_ind < len(wp_list):
             rospy.loginfo("Waypoint %d reached!", 
-                            wp_ind)
+                            wp_ind + 1)
             wp_ind += 1
     else:
         wp_reached = False
@@ -223,27 +230,31 @@ def angular_controller(diff_angle, stop=False):
     
     # PID
     # global diff_ang
+    global total_ang
+    global pre_ang
+    global heading_reached
 
-    target_rad = 90*math.pi/180
-    if (diff_angle < 0): 
-        target_rad *= -1
     
-    total_ang = 0
-    pre_ang = 0
-    while abs(odom_ang - 90.0) >= 5:
-        diff_ang = desired_ang - target_rad
+    if abs(90 - odom_ang) > 5:
+        heading_reached = False
+        diff_ang = desired_ang - 90
         total_ang += diff_ang * dt
         P = kp_ang * diff_ang
         I = ki_ang * total_ang
         D = kd_ang * ((diff_ang - pre_ang) / dt)
         w = P + D
         pre_ang = diff_ang
+        rospy.loginfo_throttle(1, "Robot is turning in-place")
         if w >= 0:
             cmd.angular.z = min(MAX_SPEED, w)
         else:
-            cmd.angular.z = max(-MAX_SPEED, w)
-        pub.publish(cmd)
-        rate.sleep()
+            cmd.angular.z = max(-MAX_SPEED, w)   
+    else:
+        cmd.angular.z = 0
+        rospy.loginfo_throttle(1, "Turning Complete. Robot is headed to next waypoint")
+        heading_reached = True
+    pub.publish(cmd)
+    rate.sleep()
 
 def init():
     # In ROS, nodes are uniquely named. If two nodes with the same
