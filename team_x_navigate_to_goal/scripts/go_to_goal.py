@@ -128,7 +128,10 @@ def obs_callback(msg):
 def get_waypoints():
     global wp_list
     global wp
-    with open('/home/burger/catkin_ws/src/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:
+
+    # uncomment below when using it on the robot
+    # with open('/home/burger/catkin_ws/src/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:
+    with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:
         wp_list = f.readlines()
         f.close()
 
