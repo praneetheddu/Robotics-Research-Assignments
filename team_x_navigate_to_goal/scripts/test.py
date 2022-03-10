@@ -369,7 +369,7 @@ odom_x = 0
 odom_y = 0
 odom_ang = 0
 
-MAX_SPEED = 0.7  # 1.0
+MAX_SPEED = 0.7 # 0.4 
 MAX_LINEAR_SPEED = 0.08
 MIN_SPEED = 0.12
 BETA = 1.5  # 1.35
@@ -391,7 +391,7 @@ dt = 0.01
 # Angular Distance Config
 desired_ang = 0
 desired_ang_window = 0.01
-kp_ang = 1.5  # 4.0
+kp_ang = 1.5 # 1.5  # 4.0
 ki_ang = 0.15
 kd_ang = 0.6
 total_ang = 0
@@ -406,6 +406,7 @@ pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 cmd = Twist()
 flag = 0
 
+TURN_ANGLES = np.array([90, 180, 270])
 '''
 GTWP = Go to Waypoint
 TURN = Turn in place
@@ -484,8 +485,8 @@ def get_waypoints():
     global wp_list
     global wp
     # Uncomment line below when running on robot
-    with open('/home/burger/catkin_ws/src/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:
-        # with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_navigate_to_goal/scripts/wayPoints.txt', 'r') as f:
+    # with open('/home/burger/catkin_ws/src/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:
+    with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_navigate_to_goal/scripts/wayPoints.txt', 'r') as f:
         wp_list = f.readlines()
         f.close()
 
@@ -626,7 +627,7 @@ def avoid_controller():
     if obs_x != 0 and obs_y != 0 and obs_ang != 0: # found obstacles
         w = k1 * (0.3 - obs_x) + k2 * (0.3 - obs_y) + k3 * (60 * math.pi / 180 - obs_ang)
     else:
-        w = 0
+        w = 0 
     return w
 
 
@@ -655,7 +656,7 @@ def turn_controller(diff_angle, start_ang, stop=False):
         greater_360 = 1
 
     rate = rospy.Rate(100)
-    while abs(odom_ang - target_ang) >= 1.5:
+    while abs(odom_ang - target_ang) >= 0.2:
 
         if greater_360 == 1 and odom_ang > target_ang:
             odom_ang = odom_ang - 360
@@ -678,6 +679,7 @@ def turn_controller(diff_angle, start_ang, stop=False):
     pub.publish(cmd)
 
     rospy.loginfo_throttle(1, "Finished Turning!")
+
     MODE = MODES[0]  # Finished turning
 
 
@@ -716,6 +718,60 @@ def tracking_controller():
 
     cmd.angular.z = w
 
+''' Matching robot's heading with desired angle '''
+def turn_controller_2(diff_angle, start_ang, stop=False):
+    global cmd
+    global MODE
+    # Get waypoints
+    global wp
+
+    # odom
+    global odom_x
+    global odom_y
+    global odom_ang
+
+    # PID
+    global target_ang
+    global pre_ang
+    global wp_reached
+    global greater_360
+
+    # target_ang = start_ang + diff_angle
+    # greater_360 = 0
+
+    # if target_ang > 360:
+    #     target_ang = target_ang - 360
+    #     odom_ang = odom_ang - 360
+    #     greater_360 = 1
+
+    rate = rospy.Rate(100)
+    while abs(odom_ang - diff_angle) >= 0.5:
+
+        if greater_360 == 1:
+            odom_ang = odom_ang - 360
+            greater_360 = 0
+        diff_ang = diff_angle - odom_ang
+        P = kp_ang * diff_ang
+        D = kd_ang * ((diff_ang - pre_ang) / dt)
+        w = P + D
+        pre_ang = diff_ang
+        if w >= 0:
+            cmd.angular.z = min(MAX_SPEED, w)
+        else:
+            cmd.angular.z = max(-MAX_SPEED, w)
+        cmd.linear.x = 0
+        rospy.loginfo_throttle(1, "target: %.2f  odom-ang %.2f", diff_angle, odom_ang)
+
+        pub.publish(cmd)
+        rate.sleep()
+    cmd.angular.z = 0
+    wp_reached = False
+    pub.publish(cmd)
+
+    rospy.loginfo_throttle(1, "Finished Turning!")
+    MODE = MODES[0]  # Finished turning
+
+
 
 def run_events():
     global MODE
@@ -724,6 +780,7 @@ def run_events():
     global odom_ang
     global odom_x
     global odom_y
+    global greater_360
 
     rate = rospy.Rate(100)
     while not rospy.is_shutdown():
@@ -733,13 +790,29 @@ def run_events():
             pub.publish(cmd)
 
         elif MODE == 'TURN':
-            turn_value = 0
-            if abs(odom_x - wp[0]) > 0.05 or abs(odom_y - wp[1]) > 0.05:
-                turn_value = 90.0
+            rospy.loginfo_throttle(2, "Current angle = %2.2f", odom_ang)
+            turn_angle = 90
+            desired_angle = odom_ang + ((odom_ang + turn_angle) % turn_angle)
+            greater_360 = 0
+            if desired_angle > 360: 
+                desired_angle = abs(desired_angle - 360)
+                greater_360 = 1
+            desired_angle_arr = abs(TURN_ANGLES - desired_angle)
+            desired_angle_ind = np.where(desired_angle_arr == np.min(desired_angle_arr))
+            desired_angle = TURN_ANGLES[desired_angle_ind[0][0]]
+            rospy.loginfo_throttle(2, "Desired angle = %2.2f", desired_angle)
+            
+            turn_controller_2(desired_angle, odom_ang)
+            rospy.loginfo_throttle(1, "heading after Turning = %2.2f",
+                           odom_ang)
+            
+            # turn_value = 0
+            # if abs(odom_x - wp[0]) > 0.05 or abs(odom_y - wp[1]) > 0.05:
+            #     turn_value = 90.0
 
-            rospy.loginfo_throttle(5, "Mode = TURN, Turning in Place with %f Degrees", turn_value)
-            start_ang = odom_ang
-            turn_controller(turn_value, start_ang, stop=False)
+            # rospy.loginfo_throttle(5, "Mode = TURN, Turning in Place with %f Degrees", turn_value)
+            # start_ang = odom_ang
+            # turn_controller(turn_value, start_ang, stop=False)
 
         rospy.loginfo_throttle(1, " vel-cmd: %f, ang-cmd: %f, x-pos: %f, y-pos: %f, heading: %f",
                                cmd.linear.x, cmd.angular.z, odom_x, odom_y, odom_ang)
