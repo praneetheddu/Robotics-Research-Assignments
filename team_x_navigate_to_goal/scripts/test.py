@@ -370,7 +370,7 @@ odom_y = 0
 odom_ang = 0
 
 MAX_SPEED = 0.7 # 0.4 
-MAX_LINEAR_SPEED = 0.08
+MAX_LINEAR_SPEED = 0.09 # 0.08
 MIN_SPEED = 0.12
 BETA = 1.5  # 1.35
 
@@ -390,9 +390,9 @@ dt = 0.01
 W_a = 1
 
 # Angular Distance Config
-desired_ang = 0
-desired_ang_window = 0.01
-kp_ang = 1.5 # 1.5  # 4.0
+desired_angle = 0
+desired_ang_window = 0.05 # 0.01
+kp_ang = 1.25 # 1.5  # 4.0
 ki_ang = 0.15
 kd_ang = 0.6
 total_ang = 0
@@ -413,6 +413,7 @@ current_time = time.time()
 pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 cmd = Twist()
 flag = 0
+greater_360 = 0
 
 TURN_ANGLES = np.array([90, 180, 270])
 '''
@@ -540,10 +541,12 @@ def goal_controller(stop=False):
 
     # angular control
     global target_ang
-    global desired_ang
+    global desired_angle
     global desired_ang_window
     global pre_ang
     global W_d
+    global kp_ang
+    global kd_ang
 
     if wp_reached == True:
         if wp_ind < len(wp_list):
@@ -604,14 +607,27 @@ def goal_controller(stop=False):
         
         
         w_avoid, obj_on_left = avoid_controller()
-        if obj_on_left:
-            kp_ang = 1.1
-        else:
-            kp_ang = 1.5
+        # if abs(diff_ang) > 0.13:
+        #     kp_ang = 0.3
+        #     kd_ang = 0.1
+        # else:
+        #     kp_ang = 1.5
+        #     kd_ang = 0.6
         
         # PD controller for angular velocity
+        
         if abs(diff_ang) <= desired_ang_window:
+            
             w = 0
+            d_odom_ang = odom_ang
+            if odom_ang < 360 and odom_ang > 350:
+                d_odom_ang = 0
+            rospy.loginfo_throttle(1, "Within Angle window----------------------------------")
+            rospy.loginfo_throttle(1, "Curr heading: %2.2f, desired heading: %2.2f ****", odom_ang, desired_angle)
+            if d_odom_ang - desired_angle >= 10:
+                rospy.loginfo_throttle(1, "***************Turn****************")
+                turn_controller_2(desired_angle, odom_ang)
+                return
         else:
             P = kp_ang * diff_ang
             D = kd_ang * ((diff_ang - pre_ang) / dt)
@@ -621,21 +637,28 @@ def goal_controller(stop=False):
         W_d = 1
         ang_vel = w + w_avoid
         
-        # Define weights     
+         # Compute blending weights for obstacle avoidance  
         if abs(w_avoid) > 0:
-            # Compute blending weights for obstacle avoidance
+            # Moving away from obstaces in front
             W_a = 1 - np.exp(-GAMMA * abs(w_avoid))
             W_d = 1 - W_a
+        # elif obj_on_left:
+        #     # Left Obstacle following
+        #     W_a = 0.38 # np.exp(-(GAMMA - 2.0) * abs(diff_ang))
+        #     W_d = 1- W_a
+        
         # else:
-        #     W_a = 1 - np.exp(-(GAMMA - 2.0)* abs(ang_vel))
+        #     # Path following weights
+        #     W_a = 1 - np.exp(-(GAMMA) * abs(diff_ang))
         #     W_d = 1 - W_a
         
-        rospy.loginfo_throttle(3, "W_D = %2.2f , W_A = %2.2f",
+        rospy.loginfo_throttle(1, "W_D = %2.2f , W_A = %2.2f",
             W_d, W_a)
         rospy.loginfo_throttle(1, "Diff ang = %2.2f , Current heading = %2.2f",
                            diff_ang, odom_ang)
-        rospy.loginfo_throttle(1, "odom reading_x = %2.2f , odom reading_y = %2.2f",
-                           odom_x, odom_y)
+        rospy.loginfo_throttle(1, "odom reading_x = %2.2f , odom reading_y = %2.2f, ang_vel = %2.2f",
+                           odom_x, odom_y, ang_vel)
+        
         cmd.angular.z = W_a * ang_vel
         cmd.linear.x = W_d * lin_vel
         
@@ -723,7 +746,7 @@ def turn_controller(diff_angle, start_ang, stop=False):
     wp_reached = False
     pub.publish(cmd)
 
-    rospy.loginfo_throttle(1, "Finished Turning!")
+    rospy.loginfo_throttle(1, " $$$$$$$$$$$$ Finished Turning! $$$$$$$$$$")
 
     MODE = MODES[0]  # Finished turning
 
@@ -739,6 +762,7 @@ def tracking_controller():
     global desired_ang_window
     global pre_ang
     global cmd
+    global desired_angle
 
     if flag == 0:
         # Keep robot on track on y-axis when moving in x-dir
@@ -805,7 +829,7 @@ def turn_controller_2(diff_angle, start_ang, stop=False):
     wp_reached = False
     pub.publish(cmd)
 
-    rospy.loginfo_throttle(1, "Finished Turning!")
+    rospy.loginfo_throttle(1, "$$$$$$$$$$ Finished Turning! $$$$$$$$$$$")
     MODE = MODES[0]  # Finished turning
 
 
@@ -818,6 +842,7 @@ def run_events():
     global odom_x
     global odom_y
     global greater_360
+    global desired_angle
 
     rate = rospy.Rate(100)
     while not rospy.is_shutdown():
@@ -828,15 +853,27 @@ def run_events():
 
         elif MODE == 'TURN':
             rospy.loginfo_throttle(2, "Current angle = %2.2f", odom_ang)
+            
             turn_angle = 90
-            desired_angle = odom_ang + ((odom_ang + turn_angle) % turn_angle)
+            # desired_angle = odom_ang + ((odom_ang + turn_angle) % turn_angle)
             greater_360 = 0
-            if desired_angle > 360: 
-                desired_angle = abs(desired_angle - 360)
+            # if desired_angle > 360: 
+            #     desired_angle = abs(desired_angle - 360)
+            #     greater_360 = 1
+            # desired_angle_arr = abs(TURN_ANGLES - desired_angle)
+            # desired_angle_ind = np.where(desired_angle_arr == np.min(desired_angle_arr))
+            # desired_angle = TURN_ANGLES[desired_angle_ind[0][0]]
+            odom_ang_temp = odom_ang
+            if odom_ang > 345: 
+                odom_ang_temp = 0
+            desired_angle = odom_ang_temp + turn_angle
+            if desired_angle > 360:
                 greater_360 = 1
             desired_angle_arr = abs(TURN_ANGLES - desired_angle)
             desired_angle_ind = np.where(desired_angle_arr == np.min(desired_angle_arr))
             desired_angle = TURN_ANGLES[desired_angle_ind[0][0]]
+            
+
             rospy.loginfo_throttle(2, "Desired angle = %2.2f, current_angle =  %2.2f", desired_angle, odom_ang)
             turn_controller_2(desired_angle, odom_ang)
             rospy.loginfo_throttle(1, "heading after Turning = %2.2f",

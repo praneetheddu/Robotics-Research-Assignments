@@ -18,7 +18,8 @@ from sensor_msgs.msg import LaserScan
 half_window_size = 5
 # obstacle_found = True
 range_max = 3.5
-detect_range = 0.5
+detect_range_obs = 0.5
+detect_range_left = 0.25
 
 
 pub = rospy.Publisher('/obs_pos', Point, queue_size=5)
@@ -33,7 +34,7 @@ def modify_lidar_data(ranges):
             mod_ranges.append(ranges[i])
     return mod_ranges
 
-def sliding_window_detection(ranges, half_window_size):
+def sliding_window_detection(ranges, half_window_size, detect_range):
     obs = []
     # using sliding window to detect any possible obstacles
     for index in range(half_window_size, len(ranges)-half_window_size-1):
@@ -88,7 +89,7 @@ def lidar_callback(msg):
         right = msg.ranges[300: 359]
         front = right + left
         front_mod = modify_lidar_data(front)
-        real_obs = sliding_window_detection(front_mod, half_window_size)
+        real_obs = sliding_window_detection(front_mod, half_window_size, detect_range_obs)
         
         if len(real_obs) > 2:
             obs_dis, angular_z = filter_object_pose(real_obs, front_mod)
@@ -100,9 +101,9 @@ def lidar_callback(msg):
         else:
             # obstacle_found = False
             # Data for the left side of the LiDAR for object following
-            left_side = msg.ranges[60:120]
+            left_side = msg.ranges[70:105]
             left_side_mod = modify_lidar_data(left_side)
-            left_real_obs = sliding_window_detection(left_side_mod, half_window_size)
+            left_real_obs = sliding_window_detection(left_side_mod, half_window_size, detect_range_left)
             if len(left_real_obs) > 2:
                 left_obs_dis, left_angular_z = filter_object_pose(left_real_obs, left_side_mod)
                 rospy.loginfo_throttle(1.0, "Obstacle on left detected!, Distance = %2.2f m with angular = %2.2f", left_obs_dis, left_angular_z)
