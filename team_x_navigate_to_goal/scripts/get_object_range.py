@@ -23,6 +23,57 @@ detect_range = 0.5
 
 pub = rospy.Publisher('/obs_pos', Point, queue_size=5)
 
+def modify_lidar_data(ranges):
+    # modify the raw data and 
+    mod_ranges = []
+    for i in range(0, len(ranges)-1):
+        if ranges[i] == 0.0:
+            mod_ranges.append(range_max)
+        else:
+            mod_ranges.append(ranges[i])
+    return mod_ranges
+
+def sliding_window_detection(ranges, half_window_size):
+    obs = []
+    # using sliding window to detect any possible obstacles
+    for index in range(half_window_size, len(ranges)-half_window_size-1):
+        dis_x = sum(ranges[index - half_window_size: index + half_window_size]) / (2 * half_window_size + 1)
+        if dis_x < detect_range:
+            obs.append(index)
+    # print(obs)
+    real_obs = []
+    #   try to denoise, if obstacles are too small, it more likes noise rather than real obstacle
+    if len(obs) > 5:
+        for i in range(1, len(obs)):
+            if obs[i] - obs[i-1] <= 3: # these two points represent the same obstacle
+                real_obs.append(obs[i])
+    
+    return real_obs
+
+def filter_object_pose(obejct_pose, ranges):
+    
+    if len(obejct_pose) > 2: # or we think it's still noise
+        # sum_obs = 0.0
+        obs_dis = 100000.0
+        center_index = len(obejct_pose) / 2
+        for j in obejct_pose:
+            # sum_obs = sum_obs + front[j]
+            # if front[j] == 0.0:
+            #     continue
+            if obs_dis > ranges[j]:
+                center_index = j
+                obs_dis = ranges[j]
+            # if angular <0 -- right, angular >0 --left
+            angular_z = float(center_index) / (float(len(ranges))/2.0) - 1.0 
+        # obs_dis = sum_obs / len(real_obs)
+        # center_index = len(real_obs) / 2
+        # print(center_index)
+
+   
+    return obs_dis, angular_z 
+    
+
+
 def lidar_callback(msg):
 
     # global obstacle_found
@@ -36,62 +87,42 @@ def lidar_callback(msg):
         left = msg.ranges[0:59]
         right = msg.ranges[300: 359]
         front = right + left
-
-        # modify the raw data
-        front_mod = []
-        for i in range(0, len(front)-1):
-            if front[i] == 0.0:
-                front_mod.append(range_max)
+        front_mod = modify_lidar_data(front)
+        real_obs = sliding_window_detection(front_mod, half_window_size)
+        
+        if len(real_obs) > 2:
+            obs_dis, angular_z = filter_object_pose(real_obs, front_mod)
+            obs_msg.x = obs_dis * np.cos(angular_z)
+            obs_msg.y = obs_dis * np.sin(angular_z)
+            obs_msg.z = angular_z
+            # print(angular_z)
+            rospy.loginfo_throttle(1.0,"Found Obstacle, Distance = %2.2f m with angular = %2.2f", obs_dis, angular_z)
+        else:
+            # obstacle_found = False
+            # Data for the left side of the LiDAR for object following
+            left_side = msg.ranges[60:120]
+            left_side_mod = modify_lidar_data(left_side)
+            left_real_obs = sliding_window_detection(left_side_mod, half_window_size)
+            if len(left_real_obs) > 2:
+                left_obs_dis, left_angular_z = filter_object_pose(left_real_obs, left_side_mod)
+                rospy.loginfo_throttle(1.0, "Obstacle on left detected!, Distance = %2.2f m with angular = %2.2f", left_obs_dis, left_angular_z)
+                
+                # change these values
+                obs_msg.x = 1000 + (left_obs_dis * np.cos(left_angular_z))
+                obs_msg.y = 1000 + (left_obs_dis * np.sin(left_angular_z))
+                obs_msg.z = 1000 + left_angular_z
             else:
-                front_mod.append(front[i])
-
-        obs = []
-        # using sliding window to detect any possible obstacles
-        for index in range(half_window_size, len(front_mod)-half_window_size-1):
-            dis_x = sum(front_mod[index - half_window_size: index + half_window_size]) / (2 * half_window_size + 1)
-            if dis_x < detect_range:
-                obs.append(index)
-        # print(obs)
-        real_obs = []
-        #   try to denoise, if obstacles are too small, it more likes noise rather than real obstacle
-        if len(obs) > 5:
-            for i in range(1, len(obs)):
-                if obs[i] - obs[i-1] <= 3: # these two points represent the same obstacle
-                    real_obs.append(obs[i])
-
-            if len(real_obs) > 2: # or we think it's still noise
-                # sum_obs = 0.0
-                obs_dis = 100000.0
-                center_index = len(real_obs) / 2
-                for j in real_obs:
-                    # sum_obs = sum_obs + front[j]
-                    # if front[j] == 0.0:
-                    #     continue
-                    if obs_dis > front_mod[j]:
-                        center_index = j
-                        obs_dis = front_mod[j]
-
-                # obs_dis = sum_obs / len(real_obs)
-                # center_index = len(real_obs) / 2
-                # print(center_index)
-                angular_z = float(center_index) / (float(len(front_mod))/2.0) - 1.0 # if angular <0 -- right, angular >0 --left
-                obs_msg.x = obs_dis * np.cos(angular_z)
-                obs_msg.y = obs_dis * np.sin(angular_z)
-                obs_msg.z = angular_z
-                # print(angular_z)
-                rospy.loginfo_throttle(1.0,"Found Obstacle, Distance = %2.2f m with angular = %2.2f", obs_dis, angular_z)
-            else:
-                # obstacle_found = False
                 obs_msg.x = 0
                 obs_msg.y = 0
                 obs_msg.z = 0
                 rospy.loginfo_throttle(2.0,"no obstacles found")
-        else:
-            # obstacle_found = False
-            obs_msg.x = 0
-            obs_msg.y = 0
-            obs_msg.z = 0
-            rospy.loginfo_throttle(1.0, "no obstacles found")
+        
+    else:
+        # obstacle_found = False
+        obs_msg.x = 0
+        obs_msg.y = 0
+        obs_msg.z = 0
+        rospy.loginfo_throttle(1.0, "no obstacles found")
 
     pub.publish(obs_msg)
 

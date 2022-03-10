@@ -603,8 +603,12 @@ def goal_controller(stop=False):
             lin_vel = max(-MAX_LINEAR_SPEED, v) * BETA
         
         
-        w_avoid = avoid_controller()
-
+        w_avoid, obj_on_left = avoid_controller()
+        if obj_on_left:
+            kp_ang = 1.1
+        else:
+            kp_ang = 1.5
+        
         # PD controller for angular velocity
         if abs(diff_ang) <= desired_ang_window:
             w = 0
@@ -622,7 +626,6 @@ def goal_controller(stop=False):
             # Compute blending weights for obstacle avoidance
             W_a = 1 - np.exp(-GAMMA * abs(w_avoid))
             W_d = 1 - W_a
-
         # else:
         #     W_a = 1 - np.exp(-(GAMMA - 2.0)* abs(ang_vel))
         #     W_d = 1 - W_a
@@ -654,19 +657,23 @@ def avoid_controller():
     global dis_x
     global dis_y
     global ang
-    
+    obj_on_left = False
     k1 = 0.2 + 0.1
     k2 = 0.1 + 0.1
     k3 = 0.1 + 0.1
     # if obs_x != 0 and obs_y != 0 and obs_ang != 0: # found obstacles
     #     w = k1 * (0.3 - obs_x) + k2 * (0.3 - obs_y) + k3 * (60 * math.pi / 180 - obs_ang)
     #     rospy.loginfo_throttle(1, "Obstacle detected!, w = %2.2f", w)
+    w = 0
     if dis_x != 0 and dis_y != 0 and ang != 0: # found obstacles
-        w = k1 * (0.3 - obs_x) + k2 * (0.3 - obs_y) + k3 * (60 * math.pi / 180 - obs_ang)
-        rospy.loginfo_throttle(1, "Obstacle detected!, w = %2.2f", w)
-    else:
-        w = 0 
-    return -w
+        if dis_x > 1000 and dis_y > 1000 and ang > 1000:
+            # obstacle detected on left side
+            obj_on_left = True
+        else:
+            w = k1 * (0.3 - obs_x) + k2 * (0.3 - obs_y) + k3 * (60 * math.pi / 180 - obs_ang)
+            rospy.loginfo_throttle(1, "Obstacle detected!, w = %2.2f", w)
+
+    return -w, obj_on_left
 
 
 def turn_controller(diff_angle, start_ang, stop=False):
