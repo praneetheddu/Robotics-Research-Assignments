@@ -623,9 +623,9 @@ def goal_controller(stop=False):
             W_a = 1 - np.exp(-GAMMA * abs(w_avoid))
             W_d = 1 - W_a
 
-        else:
-            W_a = 1 - np.exp(-(GAMMA - 2.0)* abs(ang_vel))
-            W_d = 1 - W_a
+        # else:
+        #     W_a = 1 - np.exp(-(GAMMA - 2.0)* abs(ang_vel))
+        #     W_d = 1 - W_a
         
         rospy.loginfo_throttle(3, "W_D = %2.2f , W_A = %2.2f",
             W_d, W_a)
