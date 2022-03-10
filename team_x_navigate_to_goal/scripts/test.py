@@ -387,6 +387,7 @@ kd_dis = 0.05
 total_dis = 0
 pre_dis = 0
 dt = 0.01
+W_a = 1
 
 # Angular Distance Config
 desired_ang = 0
@@ -399,6 +400,13 @@ pre_ang = 0
 target_ang = 0
 ang = 0
 ranges = []
+GAMMA = 6.2
+W_d = 1
+
+# object
+dis_x = 0
+dis_y = 0
+ang = 0
 
 # Other
 current_time = time.time()
@@ -417,8 +425,6 @@ MODE = MODES[0]
 
 
 """quaternion to euler angles"""
-
-
 def qua2rpy(qua):
     x = qua[0]
     y = qua[1]
@@ -437,8 +443,6 @@ def qua2rpy(qua):
 
 
 """ get odometry data """
-
-
 def odom_callback(msg):
     global odom_x
     global odom_y
@@ -532,12 +536,14 @@ def goal_controller(stop=False):
     # linear control
     global total_dis
     global pre_dis
+    global W_a
 
     # angular control
     global target_ang
     global desired_ang
     global desired_ang_window
     global pre_ang
+    global W_d
 
     if wp_reached == True:
         if wp_ind < len(wp_list):
@@ -553,7 +559,6 @@ def goal_controller(stop=False):
                 flag = 0
             else:
                 flag = 1
-            rospy.loginfo_throttle(3, "flag = %d", flag)
         else:
             return
 
@@ -590,11 +595,15 @@ def goal_controller(stop=False):
         P = kp_dis * diff_dis
         D = kd_dis * ((diff_dis - pre_dis) / dt)
         v = P + D
+        lin_vel = 0
         # Ceil to a MAX Speed
         if v > 0:
-            cmd.linear.x = min(MAX_LINEAR_SPEED, v)
+            lin_vel = min(MAX_LINEAR_SPEED, v)
         else:
-            cmd.linear.x = max(-MAX_LINEAR_SPEED, v) * BETA
+            lin_vel = max(-MAX_LINEAR_SPEED, v) * BETA
+        
+        
+        w_avoid = avoid_controller()
 
         # PD controller for angular velocity
         if abs(diff_ang) <= desired_ang_window:
@@ -604,9 +613,29 @@ def goal_controller(stop=False):
             D = kd_ang * ((diff_ang - pre_ang) / dt)
             w = P + D
             pre_ang = diff_ang
+        W_a = 1
+        W_d = 1
+        ang_vel = w + w_avoid
+        
+        # Define weights     
+        if abs(w_avoid) > 0:
+            # Compute blending weights for obstacle avoidance
+            W_a = 1 - np.exp(-GAMMA * abs(w_avoid))
+            W_d = 1 - W_a
 
-        cmd.angular.z = w + avoid_controller()
-
+        else:
+            W_a = 1 - np.exp(-(GAMMA - 2.0)* abs(ang_vel))
+            W_d = 1 - W_a
+        
+        rospy.loginfo_throttle(3, "W_D = %2.2f , W_A = %2.2f",
+            W_d, W_a)
+        rospy.loginfo_throttle(1, "Diff ang = %2.2f , Current heading = %2.2f",
+                           diff_ang, odom_ang)
+        rospy.loginfo_throttle(1, "odom reading_x = %2.2f , odom reading_y = %2.2f",
+                           odom_x, odom_y)
+        cmd.angular.z = W_a * ang_vel
+        cmd.linear.x = W_d * lin_vel
+        
         # WP reached
         if abs(diff_dis) < 0.01:
             cmd.linear.x = 0
@@ -618,17 +647,26 @@ def goal_controller(stop=False):
 
 def avoid_controller():
 
-    global obs_x
-    global obs_y
-    global obs_ang
-    k1 = 0.2
-    k2 = 0.1
-    k3 = 0.1
-    if obs_x != 0 and obs_y != 0 and obs_ang != 0: # found obstacles
+    # global obs_x
+    # global obs_y
+    # global obs_ang
+
+    global dis_x
+    global dis_y
+    global ang
+    
+    k1 = 0.2 + 0.1
+    k2 = 0.1 + 0.1
+    k3 = 0.1 + 0.1
+    # if obs_x != 0 and obs_y != 0 and obs_ang != 0: # found obstacles
+    #     w = k1 * (0.3 - obs_x) + k2 * (0.3 - obs_y) + k3 * (60 * math.pi / 180 - obs_ang)
+    #     rospy.loginfo_throttle(1, "Obstacle detected!, w = %2.2f", w)
+    if dis_x != 0 and dis_y != 0 and ang != 0: # found obstacles
         w = k1 * (0.3 - obs_x) + k2 * (0.3 - obs_y) + k3 * (60 * math.pi / 180 - obs_ang)
+        rospy.loginfo_throttle(1, "Obstacle detected!, w = %2.2f", w)
     else:
         w = 0 
-    return w
+    return -w
 
 
 def turn_controller(diff_angle, start_ang, stop=False):
@@ -703,8 +741,8 @@ def tracking_controller():
         ang = wp[0] - odom_x
 
     diff_ang = desired_ang - ang
-    rospy.loginfo_throttle(1, "Desired heading = %2.2f , Current heading = %2.2f, odom reading = %2.2f",
-                           desired_ang, ang, odom_y)
+    rospy.loginfo_throttle(1, "Desired heading = %2.2f , Current heading = %2.2f",
+                           desired_ang, ang)
     rospy.loginfo_throttle(1, "odom reading_x = %2.2f , odom reading_y = %2.2f",
                            odom_x, odom_y)
     if abs(diff_ang) <= desired_ang_window:
@@ -735,14 +773,6 @@ def turn_controller_2(diff_angle, start_ang, stop=False):
     global pre_ang
     global wp_reached
     global greater_360
-
-    # target_ang = start_ang + diff_angle
-    # greater_360 = 0
-
-    # if target_ang > 360:
-    #     target_ang = target_ang - 360
-    #     odom_ang = odom_ang - 360
-    #     greater_360 = 1
 
     rate = rospy.Rate(100)
     while abs(odom_ang - diff_angle) >= 0.5:
@@ -800,8 +830,7 @@ def run_events():
             desired_angle_arr = abs(TURN_ANGLES - desired_angle)
             desired_angle_ind = np.where(desired_angle_arr == np.min(desired_angle_arr))
             desired_angle = TURN_ANGLES[desired_angle_ind[0][0]]
-            rospy.loginfo_throttle(2, "Desired angle = %2.2f", desired_angle)
-            
+            rospy.loginfo_throttle(2, "Desired angle = %2.2f, current_angle =  %2.2f", desired_angle, odom_ang)
             turn_controller_2(desired_angle, odom_ang)
             rospy.loginfo_throttle(1, "heading after Turning = %2.2f",
                            odom_ang)
@@ -814,8 +843,8 @@ def run_events():
             # start_ang = odom_ang
             # turn_controller(turn_value, start_ang, stop=False)
 
-        rospy.loginfo_throttle(1, " vel-cmd: %f, ang-cmd: %f, x-pos: %f, y-pos: %f, heading: %f",
-                               cmd.linear.x, cmd.angular.z, odom_x, odom_y, odom_ang)
+        # rospy.loginfo_throttle(1, " vel-cmd: %f, ang-cmd: %f, x-pos: %f, y-pos: %f, heading: %f",
+        #                        cmd.linear.x, cmd.angular.z, odom_x, odom_y, odom_ang)
         rate.sleep()
 
 

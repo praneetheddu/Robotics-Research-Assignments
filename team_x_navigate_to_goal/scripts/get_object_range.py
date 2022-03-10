@@ -85,7 +85,7 @@ def lidar_callback(msg):
                 obs_msg.x = 0
                 obs_msg.y = 0
                 obs_msg.z = 0
-                rospy.loginfo_throttle(1.0,"no obstacles found")
+                rospy.loginfo_throttle(2.0,"no obstacles found")
         else:
             # obstacle_found = False
             obs_msg.x = 0
