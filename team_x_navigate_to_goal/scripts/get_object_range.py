@@ -18,7 +18,7 @@ from sensor_msgs.msg import LaserScan
 half_window_size = 5
 # obstacle_found = True
 range_max = 3.5
-detect_range_obs = 0.5
+detect_range_obs = 0.35 # 0.5
 detect_range_left = 0.25
 
 

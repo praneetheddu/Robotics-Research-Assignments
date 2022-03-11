@@ -27,7 +27,7 @@ odom_y = 0
 odom_ang = 0
 
 MAX_SPEED = 0.7 # 0.4 
-MAX_LINEAR_SPEED = 0.09 # 0.08
+MAX_LINEAR_SPEED = 0.12 # 0.09
 MIN_SPEED = 0.12
 BETA = 1.5  # 1.35
 
@@ -71,6 +71,7 @@ pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 cmd = Twist()
 flag = 0
 greater_360 = 0
+toggle = False
 
 TURN_ANGLES = np.array([90, 180, 270])
 '''
@@ -177,6 +178,7 @@ def goal_controller(stop=False):
     global W_d
     global kp_ang
     global kd_ang
+    global toggle
 
     if wp_reached == True:
         if wp_ind < len(wp_list):
@@ -254,7 +256,12 @@ def goal_controller(stop=False):
                 d_odom_ang = 0
             rospy.loginfo_throttle(1, "Within Angle window----------------------------------")
             rospy.loginfo_throttle(1, "Curr heading: %2.2f, desired heading: %2.2f ****", odom_ang, desired_angle)
-            if d_odom_ang - desired_angle >= 10:
+            if toggle:
+                diff_ang = d_odom_ang - desired_angle
+            else:
+               diff_ang = desired_angle - d_odom_ang 
+            if diff_ang >= 10: # go right side
+            # if desired_angle - d_odom_ang >= 10:            
                 rospy.loginfo_throttle(1, "***************Turn****************")
                 turn_controller_2(desired_angle, odom_ang)
                 return
@@ -265,8 +272,13 @@ def goal_controller(stop=False):
             pre_ang = diff_ang
         W_a = 1
         W_d = 1
-        ang_vel = w + w_avoid
         
+        # right
+        if toggle:
+            ang_vel = w + w_avoid
+        else:
+        # left
+            ang_vel = w - w_avoid
          # Compute blending weights for obstacle avoidance  
         if abs(w_avoid) > 0:
             # Moving away from obstaces in front
@@ -312,9 +324,9 @@ def avoid_controller():
     global dis_y
     global ang
     obj_on_left = False
-    k1 = 0.48 #0.2 + 0.2
-    k2 = 0.38 #0.1 + 0.2
-    k3 = 0.38 #0.1 + 0.2
+    k1 = 0.48 # 0.2 + 0.2
+    k2 = 0.38 # 0.1 + 0.2
+    k3 = 0.38 # 0.1 + 0.2
     # if obs_x != 0 and obs_y != 0 and obs_ang != 0: # found obstacles
     #     w = k1 * (0.3 - obs_x) + k2 * (0.3 - obs_y) + k3 * (60 * math.pi / 180 - obs_ang)
     #     rospy.loginfo_throttle(1, "Obstacle detected!, w = %2.2f", w)
@@ -474,6 +486,7 @@ def run_events():
     global odom_y
     global greater_360
     global desired_angle
+    global toggle
 
     rate = rospy.Rate(100)
     while not rospy.is_shutdown():
@@ -509,7 +522,7 @@ def run_events():
             turn_controller_2(desired_angle, odom_ang)
             rospy.loginfo_throttle(1, "heading after Turning = %2.2f",
                            odom_ang)
-            
+            toggle = not toggle 
             # turn_value = 0
             # if abs(odom_x - wp[0]) > 0.05 or abs(odom_y - wp[1]) > 0.05:
             #     turn_value = 90.0
