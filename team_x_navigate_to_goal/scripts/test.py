@@ -1,4 +1,4 @@
-# !/usr/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # Lab-4 Subscribe obstacle position and publish the robot desired linear and angular velocity cmd to low level motors
@@ -49,7 +49,7 @@ W_a = 1
 # Angular Distance Config
 desired_angle = 0
 desired_ang_window = 0.01 # 0.01
-kp_ang = 1.25 # 1.5  # 4.0
+kp_ang = 1.23 #1.15 # 1.5  # 4.0
 ki_ang = 0.15
 kd_ang = 0.6
 total_ang = 0
@@ -57,7 +57,7 @@ pre_ang = 0
 target_ang = 0
 ang = 0
 ranges = []
-GAMMA = 6.2
+GAMMA = 2.1 # 6.2
 W_d = 1
 
 # object
@@ -120,8 +120,8 @@ def get_waypoints():
     global wp_list
     global wp
     # Uncomment line below when running on robot
-    # with open('/home/burger/catkin_ws/src/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:
-    with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_navigate_to_goal/scripts/wayPoints.txt', 'r') as f:
+    with open('/home/burger/catkin_ws/src/team_x_navigate_to_goal/wayPoints.txt', 'r') as f:
+    # with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_navigate_to_goal/scripts/wayPoints.txt', 'r') as f:
         wp_list = f.readlines()
         f.close()
 
@@ -312,9 +312,9 @@ def avoid_controller():
     global dis_y
     global ang
     obj_on_left = False
-    k1 = 0.2 + 0.1
-    k2 = 0.1 + 0.1
-    k3 = 0.1 + 0.1
+    k1 = 0.48 #0.2 + 0.2
+    k2 = 0.38 #0.1 + 0.2
+    k3 = 0.38 #0.1 + 0.2
     # if obs_x != 0 and obs_y != 0 and obs_ang != 0: # found obstacles
     #     w = k1 * (0.3 - obs_x) + k2 * (0.3 - obs_y) + k3 * (60 * math.pi / 180 - obs_ang)
     #     rospy.loginfo_throttle(1, "Obstacle detected!, w = %2.2f", w)
