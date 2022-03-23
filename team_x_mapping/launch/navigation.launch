@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)"/>
+  <arg name="sim" default="false"/>
+  <arg name="world" default="maze.launch"/>
+  <arg name="map_file" default="$(find team_x_mapping)/map/map.yaml"/>
+
+  <!-- Turtlebot3 -->
+  <!-- joint state publisher -->
+<!--   <include file="$(find turtlebot3_bringup)/launch/turtlebot3_remote.launch" /> -->
+
+  <group unless="$(arg sim)">
+    <!-- real -->
+    <include file="$(find turtlebot3_bringup)/launch/turtlebot3_robot.launch"/>
+    <!-- include file="$(find turtlebot3_bringup)/launch/turtlebot3_remote.launch"/ -->
+  </group>
+
+  <group if="$(arg sim)">
+    <!-- gazebo -->
+    <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_$(arg world)">
+      <arg name="model" value="$(arg model)" />
+    </include>
+  </group>
+
+  <!-- naviagtion -->
+  <include file="$(find turtlebot3_navigation)/launch/turtlebot3_navigation.launch">
+      <arg name="map_file" value="$(arg map_file)"/>
+  </include>
+  <!-- Lab5 -->
+<!--   <node pkg="team_x_mapping" type="go_to_goal.py" name="go_to_goal" output="screen"/> -->
+
+</launch>
+
