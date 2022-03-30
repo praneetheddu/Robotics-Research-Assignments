@@ -20,7 +20,7 @@ from geometry_msgs.msg import PoseStamped
 #
 import numpy as np
 import math
-
+import time
 
 ###################################
 ## VARIABLE DECLARATION AND SETUP
@@ -37,8 +37,7 @@ timestamp = 0
 
 pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
 goal = PoseStamped()
-
-
+start_time = time.time()
 """
 quaternion to euler angles
 """
@@ -90,8 +89,8 @@ def get_waypoints():
     global wp_list
     global wp_num
     # Uncomment line below when running on robot
-    with open('/home/allen/catkin_ws/src/team_x_mapping/global_waypoints.txt', 'r') as f:
-    # with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_navigate_to_goal/scripts/wayPoints.txt', 'r') as f:
+    # with open('/home/allen/catkin_ws/src/team_x_mapping/global_waypoints.txt', 'r') as f:
+    with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_mapping/global_waypoints.txt', 'r') as f:
         lines = f.readlines()
         f.close()
     wp_num = len(lines)
@@ -140,7 +139,7 @@ def update_goal():
     global wp_idx
     global wp_list
     global wp_num
-
+    global start_time
 
     if check_arrive() is True:
         # sleep 2 sec
@@ -148,6 +147,7 @@ def update_goal():
         # arrive_flag = False
         rospy.loginfo("Goal %d has arrived",wp_idx)
         # update way point
+        start_time = time.time()       
         wp_idx = wp_idx + 1
         if wp_idx >= wp_num:
             rospy.loginfo("TASK FINISHED! NO MORE WAY POINTS.")
@@ -155,14 +155,17 @@ def update_goal():
         #  if still have way points in the list
     if wp_idx < wp_num:
         # update goal
-        goal.header.frame_id = "odom"
-        goal.pose.position.x = wp_list[wp_idx][0]
-        goal.pose.position.y = wp_list[wp_idx][1]
-        # goal.pos.position.z = wp_list[wp_idx][2]
-        goal.pose.orientation.x = wp_list[wp_idx][3]
-        goal.pose.orientation.y = wp_list[wp_idx][4]
-        goal.pose.orientation.z = wp_list[wp_idx][5]
-        goal.pose.orientation.w = wp_list[wp_idx][6]
+        if (time.time() - start_time > 2):
+            goal.header.frame_id = "odom"
+            goal.pose.position.x = wp_list[wp_idx][0]
+            goal.pose.position.y = wp_list[wp_idx][1]
+            # goal.pos.position.z = wp_list[wp_idx][2]
+            goal.pose.orientation.x = wp_list[wp_idx][3]
+            goal.pose.orientation.y = wp_list[wp_idx][4]
+            goal.pose.orientation.z = wp_list[wp_idx][5]
+            goal.pose.orientation.w = wp_list[wp_idx][6]
+        else:
+            rospy.loginfo_throttle(1, "Waiting for 2 seconds!")
 
 
 """
@@ -183,7 +186,6 @@ def init():
     # get way points
     get_waypoints()
     # print(wp_list)
-
     # ROS Node
     rospy.init_node('go_to_goal', anonymous=True)
 
