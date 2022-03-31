@@ -15,6 +15,7 @@
 #  ros
 import rospy
 from nav_msgs.msg import Odometry
+from actionlib_msgs.msg import GoalStatusArray
 from geometry_msgs.msg import PoseStamped
 
 #
@@ -120,20 +121,25 @@ def check_arrive():
     ang = qua2rpy([wp_list[wp_idx][3],wp_list[wp_idx][4],wp_list[wp_idx][5],wp_list[wp_idx][6]])
 
     # check if arrive, please keep following parameters are the same as them in dwa_local_planner_params.yaml
-    if  abs(wp_list[wp_idx][0] - odom_pos[0]) < 0.03 and \
-        abs(wp_list[wp_idx][1] - odom_pos[1]) < 0.03 and \
-        abs(wp_list[wp_idx][2] - odom_pos[2]) < 0.01 and \
+    if  abs(wp_list[wp_idx][0] - odom_pos[0]) < 0.17 and \
+        abs(wp_list[wp_idx][1] - odom_pos[1]) < 0.17 and \
+        abs(wp_list[wp_idx][2] - odom_pos[2]) < 0.17 and \
         abs(ang - odom_ang) < 4: # degree (0-360)
 
         return True
 
     return False
 
+# def check_arrive(msg):
+#     global goal_reached
+#     if msg.status_list[0].status == 3: # goal reached
+#         goal_reached  = True
+#     else:
+#         goal_reached  = False
 
 """
 Update way point goal
 """
-
 
 def update_goal():
     global wp_idx
@@ -142,10 +148,11 @@ def update_goal():
     global start_time
 
     if check_arrive() is True:
+    # if goal_reached:
         # sleep 2 sec
         # rospy.Duration(2.0).sleep()
         # arrive_flag = False
-        rospy.loginfo("Goal %d has arrived",wp_idx)
+        rospy.loginfo("Goal %d has arrived", wp_idx)
         # update way point
         start_time = time.time()       
         wp_idx = wp_idx + 1
@@ -156,6 +163,7 @@ def update_goal():
     if wp_idx < wp_num:
         # update goal
         if (time.time() - start_time > 2):
+            rospy.loginfo_throttle(3, "Adding new goal!")
             goal.header.frame_id = "odom"
             goal.pose.position.x = wp_list[wp_idx][0]
             goal.pose.position.y = wp_list[wp_idx][1]
@@ -175,7 +183,6 @@ def pub_goal():
     global goal
     rate = rospy.Rate(1)
     while not rospy.is_shutdown():
-
         pub.publish(goal)
         rate.sleep()
 
@@ -190,6 +197,7 @@ def init():
     rospy.init_node('go_to_goal', anonymous=True)
 
     sub = rospy.Subscriber('/odom', Odometry, odom_callback)
+    # sub = rospy.Subscriber('/move_base/status', GoalStatusArray, check_arrive)
     pub_goal()
 
     rospy.spin()

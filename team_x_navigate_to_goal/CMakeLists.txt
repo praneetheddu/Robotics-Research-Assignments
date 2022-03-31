@@ -167,8 +167,7 @@ include_directories(
 catkin_install_python(PROGRAMS
    scripts/get_object_range.py
    scripts/go_to_goal.py
-   scripts/test.py
-   scripts/test-2.py
+   scripts/Rotation_Script.py
    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
  )
 
