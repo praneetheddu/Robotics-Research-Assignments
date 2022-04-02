@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   geometry_msgs
   nav_msgs
+  move_base_msgs
   #turtlebot3_msgs
   roslib
   #cv_bridge
@@ -40,6 +41,7 @@ catkin_package(CATKIN_DEPENDS
   geometry_msgs
   std_msgs
   sensor_msgs
+  move_base_msgs
   #turtlebot3_msgs
 )
 
