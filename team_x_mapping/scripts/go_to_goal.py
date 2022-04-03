@@ -6,12 +6,6 @@
 # Mar 23, 2022
 
 
-
-# todo: Functionality of stop 2s at each way point
-# todo: Current publish goals in "odom" frame, not sure if we must publish in "map" frame
-
-# wp1: 2.5700, 0.53, 0.000, 0.000, 0.000, 0.96, -0.256
-
 #  ros
 import rospy
 from nav_msgs.msg import Odometry
@@ -40,6 +34,8 @@ pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
 goal = PoseStamped()
 start_time = time.time()
 goal_reached = False
+init = True
+is_wp_updated = False
 """
 quaternion to euler angles
 """
@@ -85,15 +81,13 @@ def odom_callback(msg):
 """ 
 get waypoint goal 
 """
-
-
 def get_waypoints():
     global wp_list
     global wp_num
     # Uncomment line below when running on robot
-    # with open('/home/allen/catkin_ws/src/team_x_mapping/global_waypoints.txt', 'r') as f:
-    #with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_mapping/global_waypoints.txt', 'r') as f:
-    with open('/home/rick/catkin_ws/src/team_x_mapping/global-wp-2.txt', 'r') as f:
+    #  with open('/home/allen/catkin_ws/src/team_x_mapping/global_waypoints.txt', 'r') as f:
+    # with open('/home/allen/catkin_ws/src/team_x_mapping/global-wp-2.txt', 'r') as f:
+    with open('/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_mapping/global_waypoints.txt', 'r') as f:
         lines = f.readlines()
         f.close()
     wp_num = len(lines)
@@ -106,69 +100,49 @@ def get_waypoints():
 
 
 
+
+# def check_arrives():
+#     global wp_list
+#     global odom_pos
+#     global odom_ang
+#     global wp_idx
+#     global wp_num
+
+#     if wp_idx >= wp_num:
+#         return False
+#     # compute the yaw angular
+#     ang = qua2rpy([wp_list[wp_idx][3],wp_list[wp_idx][4],wp_list[wp_idx][5],wp_list[wp_idx][6]])
+
+#     # check if arrive, please keep following parameters are the same as them in dwa_local_planner_params.yaml
+#     if  abs(wp_list[wp_idx][0] - odom_pos[0]) < 0.17 and \
+#         abs(wp_list[wp_idx][1] - odom_pos[1]) < 0.17 and \
+#         abs(wp_list[wp_idx][2] - odom_pos[2]) < 0.17 and \
+#         abs(ang - odom_ang) < 4: # degree (0-360)
+
+#         return True
+
+#     return False
+
 """
 Check the robot arrival status
 """
-
-def check_arrives():
-    global wp_list
-    global odom_pos
-    global odom_ang
-    global wp_idx
-    global wp_num
-
-    if wp_idx >= wp_num:
-        return False
-    # compute the yaw angular
-    ang = qua2rpy([wp_list[wp_idx][3],wp_list[wp_idx][4],wp_list[wp_idx][5],wp_list[wp_idx][6]])
-
-    # check if arrive, please keep following parameters are the same as them in dwa_local_planner_params.yaml
-    if  abs(wp_list[wp_idx][0] - odom_pos[0]) < 0.17 and \
-        abs(wp_list[wp_idx][1] - odom_pos[1]) < 0.17 and \
-        abs(wp_list[wp_idx][2] - odom_pos[2]) < 0.17 and \
-        abs(ang - odom_ang) < 4: # degree (0-360)
-
-        return True
-
-    return False
-
 def check_arrive(msg):
     global goal_reached
     global start_time
     global wp_idx
-    if msg.status_list[0].status == 3: # goal reached
+    global goal
+    global is_wp_updated
+    
+    if len(msg.status_list) == 0: # goal reached
+        rospy.loginfo("Inital goal added or list empty")     
+    elif msg.status_list[0].status == 3: # goal reached
+        rospy.loginfo("Goal Reached!")
         goal_reached  = True
-        # sleep 2 sec
-        # rospy.Duration(2.0).sleep()
-        # arrive_flag = False
-        rospy.loginfo("Goal %d has arrived", wp_idx)
-        # update way point
-        start_time = time.time()       
-        wp_idx = wp_idx + 1
-	goal_reached = False
-        if wp_idx >= wp_num:
-            rospy.loginfo_throttle(1, "Tasks completed!.")
-
-        #  if still have way points in the list
-        if wp_idx < wp_num:
-	# update goal
-	    if (time.time() - start_time > 2):
-	        rospy.loginfo_throttle(3, "Adding new goal!")
-	        #goal.header.frame_id = "odom"
-	        goal.header.frame_id = "map"
-	        goal.pose.position.x = wp_list[wp_idx][0]
-	        goal.pose.position.y = wp_list[wp_idx][1]
-	        # goal.pos.position.z = wp_list[wp_idx][2]
-	        goal.pose.orientation.x = wp_list[wp_idx][3]
-	        goal.pose.orientation.y = wp_list[wp_idx][4]
-	        goal.pose.orientation.z = wp_list[wp_idx][5]
-	        goal.pose.orientation.w = wp_list[wp_idx][6]
-	    # pub.publish(goal)
-	    else:
-	        rospy.loginfo_throttle(1, "Waiting for 2 seconds!")
-        else:
-	    goal_reached  = False
-
+        update_goal()
+    else:
+        is_wp_updated = False 
+        goal_reached  = False
+        
 """
 Update way point goal
 """
@@ -179,27 +153,28 @@ def update_goal():
     global wp_num
     global start_time
     global goal_reached
-
-    #if check_arrive() is True:
-    if goal_reached:
-        # sleep 2 sec
-        # rospy.Duration(2.0).sleep()
-        # arrive_flag = False
-        rospy.loginfo("Goal %d has arrived", wp_idx)
+    global goal
+    global init
+    global is_wp_updated
+    
+    # if check_arrive() is True:
+    if goal_reached and not is_wp_updated:
         # update way point
-        start_time = time.time()       
+        rospy.loginfo_throttle(2, "Goal %d has arrived", wp_idx)  
+        start_time = time.time()   
         wp_idx = wp_idx + 1
-	goal_reached = False
+        is_wp_updated = True
+    
         if wp_idx >= wp_num:
-            rospy.loginfo_throttle(1, "Tasks completed!.")
+            rospy.loginfo("TASK FINISHED! NO MORE WAY POINTS.")
 
-        #  if still have way points in the list
+    #  if still have way points in the list
     if wp_idx < wp_num:
         # update goal
-        if (time.time() - start_time > 2):
+        if init or (time.time() - start_time > 2):
             rospy.loginfo_throttle(3, "Adding new goal!")
-            #goal.header.frame_id = "odom"
-	    goal.header.frame_id = "map"
+            goal.header.frame_id = "map"
+            # goal.header.frame_id = "odom"
             goal.pose.position.x = wp_list[wp_idx][0]
             goal.pose.position.y = wp_list[wp_idx][1]
             # goal.pos.position.z = wp_list[wp_idx][2]
@@ -207,7 +182,7 @@ def update_goal():
             goal.pose.orientation.y = wp_list[wp_idx][4]
             goal.pose.orientation.z = wp_list[wp_idx][5]
             goal.pose.orientation.w = wp_list[wp_idx][6]
-	    # pub.publish(goal)
+            init = False
         else:
             rospy.loginfo_throttle(1, "Waiting for 2 seconds!")
 
@@ -217,21 +192,21 @@ Publish goal in 1HZ
 """
 def pub_goal():
     global goal
+
     rate = rospy.Rate(1)
     while not rospy.is_shutdown():
         pub.publish(goal)
         rate.sleep()
 
-
-
-
 def init():
+    global init
+    
     # get way points
     get_waypoints()
     # print(wp_list)
     # ROS Node
     rospy.init_node('go_to_goal', anonymous=True)
-
+    update_goal()
     sub = rospy.Subscriber('/odom', Odometry, odom_callback)
     sub = rospy.Subscriber('/move_base/status', GoalStatusArray, check_arrive)
     pub_goal()
