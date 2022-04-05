@@ -150,11 +150,16 @@ train_labels = np.array([np.int32(lines[i][1]) for i in range(len(lines))])
 ### Train classifier
 knn = cv.ml.KNearest_create()
 knn.train(train_data, cv.ml.ROW_SAMPLE, train_labels)
-
+# save the model
+knn.save("knnModel")
 
 ############################################
 #              Test                        #
 ############################################
+# load the model
+knn_test = cv.ml.KNearest_create()
+model = knn_test.load("knnModel")
+# load test set
 with open(testDirectory + 'test.txt', 'r') as f:
     reader = csv.reader(f)
     lines = list(reader)
@@ -181,7 +186,7 @@ for i in range(len(lines)):
 
     test_label = np.int32(lines[i][1])
 
-    ret, results, neighbours, dist = knn.findNearest(test_img, k)
+    ret, results, neighbours, dist = model.findNearest(test_img, k)
 
     if test_label == ret:
         print(str(lines[i][0]) + " Correct, " + str(ret))
