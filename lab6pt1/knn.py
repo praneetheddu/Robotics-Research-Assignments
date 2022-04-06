@@ -51,7 +51,8 @@ light_thresh = 70
 # other
 debug = False
 # debug = True
-
+train_flag = False
+test_flag = True
 
 ##########################################
 #            Image Processing            #
