@@ -1,11 +1,8 @@
-# Simple, Poorly Functioning KNN Classifier. 
-
-It will train and test each time you run the code
-
-example_knn.py - This code runs considering the full image without any processing. The KNN classifier acts only on the raw picture pixel intensity values. The resulting model achieves rather poor performance.
+# KNN Image Classifier. 
 
 ## Run
-
 python knn.py
 
-NOTE: set python2.7 as interpreter
+## NOTE: 
+* set python 2.7 as interpreter
+* opencv minimum version 4.2.0
