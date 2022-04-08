@@ -1,8 +1,0 @@
-# KNN Image Classifier. 
-
-## Run
-python knn.py
-
-## NOTE: 
-* set python 2.7 as interpreter
-* opencv minimum version 4.2.0

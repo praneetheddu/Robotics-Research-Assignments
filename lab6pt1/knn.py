@@ -181,7 +181,6 @@ if test_flag:
         Title_images = 'Original Image'
         Title_resized = 'Image Resized'
         cv.namedWindow( Title_images, cv.WINDOW_AUTOSIZE )
-
     for i in range(len(lines)):
         original_img = cv.imread(testDirectory+ lines[i][0] + ".jpg", rgb)
         test_img = np.array(preprocess(original_img))
@@ -212,4 +211,6 @@ if test_flag:
     toc = time.time()
     print("\nRun Time: " + str(toc-tic))
     print("\n\nTotal accuracy: " + str(correct/len(lines)))
+    avg_T = (toc-tic) / len(lines)
+    print("Avg. Prediction time spent per img: %2.2f s" % avg_T)
     print(confusion_matrix)
