@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>  
+
+  <!-- Lab5 -->
+  <node pkg="team_x_mapping" type="go_to_goal.py" name="go_to_goal" output="screen"/>
+
+</launch>

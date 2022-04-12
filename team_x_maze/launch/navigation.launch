@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)"/>
+  <arg name="sim" default="false"/>
+  <arg name="world" default="maze.launch"/>
+  <arg name="sim_map_file" default="$(find team_x_mapping)/map/sim_maze.yaml"/>
+  <arg name="real_map_file" default="$(find team_x_mapping)/map/maze.yaml"/>
+
+
+  <group unless="$(arg sim)">
+    <!-- naviagtion -->
+    <include file="$(find turtlebot3_navigation)/launch/turtlebot3_navigation.launch">
+        <arg name="map_file" value="$(arg real_map_file)"/>
+    </include>
+  </group>
+
+  <group if="$(arg sim)">
+    <!-- gazebo -->
+    <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_$(arg world)">
+      <arg name="model" value="$(arg model)" />
+    </include>
+    <!-- naviagtion -->
+    <include file="$(find turtlebot3_navigation)/launch/turtlebot3_navigation.launch">
+        <arg name="map_file" value="$(arg sim_map_file)"/>
+    </include>
+  </group>
+
+
+</launch>
+
