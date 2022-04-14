@@ -13,7 +13,7 @@ TODO(✔️ ❌) :
 1. Integrate KNN model into ROS to classify signs using Raspi camera ❌
 2. Use LiDAR to determine distance to walls ❌
 3. Leverage distance and signage data to publish goals using move_base simple goal ❌
-4. Integrate camera in simulation environment ❌
+4. Integrate camera in simulation environment ✔️
 5. Check for target sign of completion ❌
 6. Develop a failsafe in-case robot gets lost ❌
 """
