@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="model" default="$(env TURTLEBOT3_MODEL)"/>
+  <!-- <arg name="model" default="$(find team_x_maze)/urdf/turtlebot3_burger.urdf.xacro"/> -->
   <arg name="sim" default="false"/>
   <arg name="world" default="maze.launch"/>
   <arg name="sim_map_file" default="$(find team_x_mapping)/map/sim_maze.yaml"/>
