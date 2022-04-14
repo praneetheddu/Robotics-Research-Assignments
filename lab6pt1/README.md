@@ -6,5 +6,5 @@
 
 ## Testing Classifier
 Run `python knn.py` <br/>
-Confusion matrix will be printed in Terminal at the end of testing execution
+Confusion matrix and accuracy score are displayed in terminal after testing
 
