@@ -11,24 +11,60 @@ Date: 04/14/2022
 """
 TODO(✔️ ❌) :  
 1. Integrate KNN model into ROS to classify signs using Raspi camera ❌
-2. Use LiDAR to determine distance to walls ❌
-3. Leverage distance and signage data to publish goals using move_base simple goal ❌
-4. Integrate camera in simulation environment ✔️
-5. Check for target sign of completion ❌
-6. Develop a failsafe in-case robot gets lost ❌
+2. Integrate KNN model into ROS to classify signs using Sim camera ✔️
+3. Use LiDAR to determine distance to walls ❌
+4. Leverage distance and signage data to publish goals using move_base simple goal ❌
+5. Integrate camera in simulation environment ✔️
+6. Check for target sign of completion ❌
+7. Develop a failsafe in-case robot gets lost ❌
 """
 
 # ROS 
 import rospy
+from sensor_msgs.msg import CompressedImage
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
 from move_base_msgs.msg import MoveBaseActionFeedback
 
 # Python
+import sys
 import numpy as np
+import knn 
+from cv_bridge import CvBridge
+import cv2
+
+# Global variables
+sim = True
+bridge = CvBridge() #Bridge converts the image from ros to openCV
+# 0: empty wall, 1: left, 2: right, 3: do not enter, 4: stop, 5: goal
+sign_dict = {
+    0: "wall",
+    1: "left", 
+    2: "right", 
+    3: "do not enter", 
+    4: "stop", 
+    5: "goal"
+}
+sign = ""
+
+"Get compressed image and predict sign"
+def predict_image(CompressedImage):
+    imgBGR = bridge.compressed_imgmsg_to_cv2(CompressedImage, "bgr8")
+    # Predict sign here
+    sign = knn.predict(imgBGR)
+    rospy.loginfo("Sign predicted = %s", sign_dict[sign])
+
 
 def init():
+    rospy.loginfo("CV Version = %s", cv2. __version__)
+    rospy.loginfo("Python Version = %s", sys.version)
+    if sim:
+        rospy.Subscriber("/turtlebot_burger/camera/image_raw/compressed", CompressedImage, predict_image, queue_size=1, buff_size=2**24)
+    else:
+        rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, predict_image, queue_size=1, buff_size=2**24)
+    rospy.init_node('navigate_maze', anonymous=True)
     rospy.spin()
+
 
 if __name__ == '__main__':
     try:

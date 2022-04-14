@@ -54,7 +54,7 @@ contrast = 30
 debug = False
 # debug = True
 train_flag = False
-test_flag = True
+test_flag = False
 
 # version check
 print("Your python version: " + str(platform.python_version()))
@@ -131,6 +131,36 @@ def preprocess(img):
 
     return img
 
+def predict(img, debig=False, k=5):
+    tic = time.time()
+    # load the model
+    knn_test = cv.ml.KNearest_create()
+    model = knn_test.load("/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_maze/model/knnModel")
+
+    if debug:
+        Title_images = 'Original Image'
+        Title_resized = 'Image Resized'
+        cv.namedWindow( Title_images, cv.WINDOW_AUTOSIZE )
+        
+    test_img = np.array(preprocess(img))
+
+    if debug:
+        cv.imshow(Title_images, original_img)
+        cv.imshow(Title_resized, test_img)
+        key = cv.waitKey()
+        if key==27:    # Esc key to stop
+            return
+    
+    test_img = test_img.flatten().reshape(1,resize_w*resize_h*dimension)
+    test_img = test_img.astype(np.float32)
+    # test_label = np.int32(lines[i][1])
+
+    ret, results, neighbours, dist = model.findNearest(test_img, k)
+    
+    toc = time.time()
+    print("\nPrediction Time: " + str(toc-tic))
+    return int(ret)
+
 ############################################
 #              Train                       #
 ############################################
@@ -169,7 +199,7 @@ if test_flag:
     tic = time.time()
     # load the model
     knn_test = cv.ml.KNearest_create()
-    model = knn_test.load("knnModel")
+    model = knn_test.load("/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_maze/model/knnModel")
     # load test set
     with open(testDirectory + 'test.txt', 'r') as f:
         reader = csv.reader(f)

@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>  
+  <!-- Lab6 -->
+  <node pkg="team_x_maze" type="maze.py" name="navigate_maze" output="screen"/>
+</launch>
