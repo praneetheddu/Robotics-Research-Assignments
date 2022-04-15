@@ -25,6 +25,7 @@ from sensor_msgs.msg import CompressedImage
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseStamped
 from move_base_msgs.msg import MoveBaseActionFeedback
+from geometry_msgs.msg import Point
 
 # Python
 import sys
@@ -50,11 +51,14 @@ sign_dict = {
 sign = -1
 dist_to_wall = 0
 
+"Get distance to wall"
 def obs_callback(msg):
     global dist_to_wall
     dist_to_wall = msg.x
     if (dist_to_wall > 200):
         dist_to_wall = 0
+    #if DEBUG:
+    rospy.loginfo_throttle(1, "Distance to wall = %2.2f m", dist_to_wall)
 
 "Get compressed image and predict sign"
 def predict_image(CompressedImage):
@@ -62,7 +66,7 @@ def predict_image(CompressedImage):
     # Predict sign here
     sign = knn.predict(imgBGR, debug=DEBUG)
     if DEBUG:
-        rospy.loginfo("Sign predicted = %s", sign_dict[sign])
+        rospy.loginfo_throttle(1, "Sign predicted = %s", sign_dict[sign])
 
 
 def init():
@@ -72,7 +76,7 @@ def init():
         rospy.Subscriber("/turtlebot_burger/camera/image_raw/compressed", CompressedImage, predict_image, queue_size=1, buff_size=2**24)
     else:
         rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, predict_image, queue_size=1, buff_size=2**24)
-    rospy.Subscriber("/object_pos", CompressedImage, Point, obs_callback)
+    rospy.Subscriber("/object_pos", Point, obs_callback)
     rospy.init_node('navigate_maze', anonymous=True)
     rospy.spin()
 

@@ -22,7 +22,7 @@ detect_range_obs = 0.5 # 0.5
 detect_range_left = 0.25
 front_fov = 6
 
-pub = rospy.Publisher('/obs_pos', Point, queue_size=5)
+pub = rospy.Publisher('/object_pos', Point, queue_size=5)
 
 def modify_lidar_data(ranges):
     # modify the raw data and 
@@ -98,7 +98,7 @@ def lidar_callback(msg):
             obs_msg.y = obs_dis * np.sin(angular_z)
             obs_msg.z = angular_z
             # print(angular_z)
-            rospy.loginfo_throttle(2.0,"Wall Detected, Distance = %2.2f m with angular = %2.2f", obs_dis, angular_z)
+            # rospy.loginfo_throttle(2.0,"Wall Detected, Distance = %2.2f m with angular = %2.2f", obs_dis, angular_z)
         else:
             # obstacle_found = False
             # Data for the left side of the LiDAR for object following
@@ -125,7 +125,6 @@ def lidar_callback(msg):
     #     obs_msg.y = 0
     #     obs_msg.z = 0
     #     rospy.loginfo_throttle(1.0, "no obstacles found")
-
     pub.publish(obs_msg)
 
 """
