@@ -131,7 +131,7 @@ def preprocess(img):
 
     return img
 
-def predict(img, debig=False, k=5):
+def predict(img, debug=False, k=5):
     tic = time.time()
     # load the model
     knn_test = cv.ml.KNearest_create()
@@ -156,9 +156,9 @@ def predict(img, debig=False, k=5):
     # test_label = np.int32(lines[i][1])
 
     ret, results, neighbours, dist = model.findNearest(test_img, k)
-    
     toc = time.time()
-    print("\nPrediction Time: " + str(toc-tic))
+    if debug:
+        print("\nPrediction Time: " + str(toc-tic))
     return int(ret)
 
 ############################################

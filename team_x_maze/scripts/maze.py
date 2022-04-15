@@ -11,8 +11,8 @@ Date: 04/14/2022
 """
 TODO(✔️ ❌) :  
 1. Integrate KNN model into ROS to classify signs using Raspi camera ❌
-2. Integrate KNN model into ROS to classify signs using Sim camera ✔️
-3. Use LiDAR to determine distance to walls ❌
+2. Integrate KNN model into ROS to classify signs using Sim camera ✔️ 
+3. Use LiDAR to determine distance to walls ✔️
 4. Leverage distance and signage data to publish goals using move_base simple goal ❌
 5. Integrate camera in simulation environment ✔️
 6. Check for target sign of completion ❌
@@ -30,14 +30,16 @@ from move_base_msgs.msg import MoveBaseActionFeedback
 import sys
 import numpy as np
 import knn 
-from cv_bridge import CvBridge
 import cv2
+from cv_bridge import CvBridge
 
 # Global variables
 sim = True
-bridge = CvBridge() #Bridge converts the image from ros to openCV
-# 0: empty wall, 1: left, 2: right, 3: do not enter, 4: stop, 5: goal
+bridge = CvBridge() # Bridge converts the image from ros to openCV
+DEBUG = False
+
 sign_dict = {
+    -1: "NA",
     0: "wall",
     1: "left", 
     2: "right", 
@@ -45,14 +47,22 @@ sign_dict = {
     4: "stop", 
     5: "goal"
 }
-sign = ""
+sign = -1
+dist_to_wall = 0
+
+def obs_callback(msg):
+    global dist_to_wall
+    dist_to_wall = msg.x
+    if (dist_to_wall > 200):
+        dist_to_wall = 0
 
 "Get compressed image and predict sign"
 def predict_image(CompressedImage):
     imgBGR = bridge.compressed_imgmsg_to_cv2(CompressedImage, "bgr8")
     # Predict sign here
-    sign = knn.predict(imgBGR)
-    rospy.loginfo("Sign predicted = %s", sign_dict[sign])
+    sign = knn.predict(imgBGR, debug=DEBUG)
+    if DEBUG:
+        rospy.loginfo("Sign predicted = %s", sign_dict[sign])
 
 
 def init():
@@ -62,6 +72,7 @@ def init():
         rospy.Subscriber("/turtlebot_burger/camera/image_raw/compressed", CompressedImage, predict_image, queue_size=1, buff_size=2**24)
     else:
         rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, predict_image, queue_size=1, buff_size=2**24)
+    rospy.Subscriber("/object_pos", CompressedImage, Point, obs_callback)
     rospy.init_node('navigate_maze', anonymous=True)
     rospy.spin()
 
