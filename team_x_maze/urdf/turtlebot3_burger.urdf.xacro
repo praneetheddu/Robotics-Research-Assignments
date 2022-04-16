@@ -178,18 +178,18 @@
     </visual>
 
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="0.015 0 -0.0065" rpy="0 0 0"/>
       <geometry>
-        <cylinder length="0" radius="0"/>
+        <cylinder length="0.0315" radius="0.055"/>
       </geometry>
     </collision>
 
     <inertial>
-      <mass value="0" />
+      <mass value="0.114" />
       <origin xyz="0 0 0" />
-      <inertia ixx="0.000" ixy="0.0" ixz="0.0"
-               iyy="0.000" iyz="0.0"
-               izz="0.000" />
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+               iyy="0.001" iyz="0.0"
+               izz="0.001" />
     </inertial>
   </link>
 

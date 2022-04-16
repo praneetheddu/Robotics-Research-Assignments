@@ -15,7 +15,9 @@ import time
 ##########################################
 #            Variables                   #
 ##########################################
-
+# model
+# model_path = "/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_maze/model/knnModel"
+model_path = "/home/allen/catkin_ws/src/team_x_maze/model/knnModel"
 # dir
 trainDirectory = './2022imgs/train_images/'
 testDirectory = './2022imgs/test_images/'
@@ -135,7 +137,7 @@ def predict(img, debug=False, k=5):
     tic = time.time()
     # load the model
     knn_test = cv.ml.KNearest_create()
-    model = knn_test.load("/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_maze/model/knnModel")
+    model = knn_test.load(model_path)
 
     if debug:
         Title_images = 'Original Image'
@@ -145,7 +147,7 @@ def predict(img, debug=False, k=5):
     test_img = np.array(preprocess(img))
 
     if debug:
-        cv.imshow(Title_images, original_img)
+        cv.imshow(Title_images, img)
         cv.imshow(Title_resized, test_img)
         key = cv.waitKey()
         if key==27:    # Esc key to stop

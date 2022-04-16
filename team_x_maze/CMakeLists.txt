@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   move_base_msgs
   roslib
   cv_bridge
-  #opencv2 REQUIRED
+  message_generation
 )
 
 ################################################################################
@@ -27,7 +27,15 @@ find_package(catkin REQUIRED COMPONENTS
 ################################################################################
 # Declare ROS messages, services and actions
 ################################################################################
+add_message_files(
+  FILES
+  Wall.msg
+)
 
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 ################################################################################
 # Declare ROS dynamic reconfigure parameters
 ################################################################################
@@ -41,6 +49,7 @@ catkin_package(CATKIN_DEPENDS
   std_msgs
   sensor_msgs
   move_base_msgs
+  message_runtime
 )
 
 ################################################################################

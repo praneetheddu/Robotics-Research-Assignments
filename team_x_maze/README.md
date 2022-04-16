@@ -18,7 +18,7 @@ cd catkin_ws && catkin_make
 ### mapping
 * Run the turtlebot simulation 
 ```
-roslaunch team_x_mapping mapping.launch
+roslaunch team_x_maze mapping.launch
 ```
 * Run the turtlebot3 robot to do the mapping
 on the robot:
@@ -27,26 +27,28 @@ roslaunch turtlebot3_bringup turtlebot3_robot.launch
 ```
 on your pc:
 ```
-roslaunch team_x_mapping mapping_real.launch
+roslaunch team_x_maze mapping_real.launch
 ```
 
 To save the map
 ```
-rosrun map_server map_saver -f ~/catkin_ws/src/team_x_mapping/map/sim_maze
-rosrun map_server map_saver -f ~/catkin_ws/src/team_x_mapping/map/maze
+rosrun map_server map_saver -f ~/catkin_ws/src/team_x_maze/map/sim_maze
+rosrun map_server map_saver -f ~/catkin_ws/src/team_x_maze/map/maze
 ```
 ### navigation
 * Run the turtlebot simulation (default map name: map/sim_maze.yaml)
 ```
-roslaunch team_x_mapping navigation.launch sim:=true 
+roslaunch team_x_maze navigation.launch sim:=true 
 ```
-* Run the turtlebot3 robot (default map name: map/maze.yaml)
+* Run on the turtlebot3 robot (default map name: map/maze.yaml)
 ```
-roslaunch team_x_mapping navigation.launch
+roslaunch turtlebot3_bringup turtlebot3_robot.launch
+roslaunch turtlebot3_bringup turtlebot3_rpicamera.launch
+roslaunch team_x_maze navigation.launch
 ```
 * Run the lab6
 ```
-
+roslaunch team_x_maze maze.launch
 
 ```
 
