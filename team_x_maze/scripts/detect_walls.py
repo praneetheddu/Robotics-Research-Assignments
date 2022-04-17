@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Lab-4 Use lidar data to find obstacles in front of robot
+# Lab-6 Use lidar data to walls surrounding robot
 # Yinuo Wang, Praneeth Erwin Eddu
 # Feb 03, 2022
 import numpy as np

@@ -4,15 +4,7 @@ This is the lab6 package for Gatech ECE/CS7785.
 ## Configuration
 * (Please add your email into `./manifest.xml` and delete this line)
 * Create gazebo environment by following the `etc/7785_Lab5_Gazebo_Files-master.zip/README.md`
-## Map definition
-  ----------
-  |        |                 ^  front
-  |        |                 |
-  |   M    |      left   <-     ->   right
-  |   A    |                 |
-  |   P    |                 v  back
-  |        |
-  ----------
+
 
 ## Build & Run
 * Copy package into workspace
@@ -23,7 +15,7 @@ cp -r team_x_maze ${YOUR_CATKIN_WORKSPACE}/src
 ```
 cd catkin_ws && catkin_make
 ```
-### Mapping
+### mapping
 * Run the turtlebot simulation 
 ```
 roslaunch team_x_maze mapping.launch
@@ -43,7 +35,7 @@ To save the map
 rosrun map_server map_saver -f ~/catkin_ws/src/team_x_maze/map/sim_maze
 rosrun map_server map_saver -f ~/catkin_ws/src/team_x_maze/map/maze
 ```
-### Navigation
+### navigation
 * Run the turtlebot simulation (default map name: map/sim_maze.yaml)
 ```
 roslaunch team_x_maze navigation.launch sim:=true 
