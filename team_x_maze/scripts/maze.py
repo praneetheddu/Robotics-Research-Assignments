@@ -14,11 +14,11 @@ TODO(✔️ ❌) :
 1. Integrate KNN model into ROS to classify signs using Raspi camera ❌
 2. Integrate KNN model into ROS to classify signs using Sim camera ✔️ 
 3. Use LiDAR to determine distance to walls ✔️
-4. Leverage distance and signage data to publish goals using move_base simple goal ❌
+4. Leverage distance and signage data to publish goals using move_base simple goal ✔
 5. Integrate camera in simulation environment ✔️
 6. Check for target sign of completion ✔️
 7. Develop a failsafe in-case robot gets lost ❌
-8. Define the actions when detecting "not enter" and "stop" sign ❌
+8. Define the actions when detecting "not enter" and "stop" sign ✔
 """
 
 # ROS 
@@ -54,11 +54,11 @@ sign_dict = {
     0: "Wall",
     1: "Left",
     2: "Right",
-    3: "Do Not Enter",
+    3: "DoNotEnter",
     4: "Stop",
     5: "Goal"
 }
-sign = 0
+sign = -1
 dist_to_wall = [0, 0, 0, 0]
 
 # pos in map frame
@@ -83,9 +83,8 @@ cur_heading = 0  # left
 # goal
 pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
 goal = PoseStamped()
-goal_offset = 0.26
+goal_offset = 0.25
 initial = True
-
 
 """
 Check the robot arrival status
@@ -93,7 +92,6 @@ Check the robot arrival status
 
 
 def check_arrive():
-
     global cur_pos
     global cur_ang
     global goal
@@ -124,8 +122,10 @@ def set_goal():
         rospy.loginfo("%s Sign Detected", sign_dict[sign])
 
         dist = dist_to_wall
+
         if sign_dict[sign] is "Goal":
             rospy.loginfo("Arrive Final Goal!")
+            return
         elif sign_dict[sign] is "Left":
             dist[1] -= goal_offset
             # set goal position
@@ -153,7 +153,29 @@ def set_goal():
             # set goal heading direction
             cur_heading = 0 if cur_heading + 1 > 3 else cur_heading + 1
             # goal.pose.orientation = heading[cur_heading]
-        elif sign_dict[sign] is ("Do Not Enter" or "Stop"):
+
+        elif sign_dict[sign] is "DoNotEnter":
+            dist[3] -= goal_offset
+            # set goal position
+            if cur_heading == 0 or cur_heading == 2:  # left/right
+                goal.pose.position.x = cur_pos[0]
+                goal.pose.position.y = cur_pos[1] - dist[3] if cur_heading == 0 else cur_pos[1] + dist[3]
+            else:  # forward/backward
+                goal.pose.position.x = cur_pos[0] - dist[3] if cur_heading == 1 else cur_pos[0] + dist[3]
+                goal.pose.position.y = cur_pos[1]
+
+            # set goal heading direction
+            if cur_heading == 1:
+                cur_heading = 3
+            elif cur_heading == 3:
+                cur_heading = 1
+            elif cur_heading == 0:
+                cur_heading = 2
+            elif cur_heading == 2:
+                cur_heading = 0
+            # goal.pose.orientation = heading[cur_heading]
+
+        elif sign_dict[sign] is "Stop":
             goal.pose.position.x = cur_pos[0]
             goal.pose.position.y = cur_pos[1]
 
@@ -173,7 +195,7 @@ Publish goal in 1HZ
 
 
 def pub_goal():
-    rate = rospy.Rate(1)
+    rate = rospy.Rate(0.5)
     while not rospy.is_shutdown():
         set_goal()
         pub.publish(goal)
@@ -236,7 +258,6 @@ def qua2rpy(qua):
 
 
 def odom_callback(msg):
-
     global cur_pos
     global cur_ang
     global initial
@@ -262,7 +283,6 @@ def odom_callback(msg):
 
 
 def map_callback(msg):
-
     global sign
     global cur_pos
     global cur_ang
@@ -279,7 +299,6 @@ def map_callback(msg):
 
 
 def init():
-
     if sim:
         rospy.Subscriber("/turtlebot_burger/camera/image_raw/compressed", CompressedImage, predict_image, queue_size=1,
                          buff_size=2 ** 24)

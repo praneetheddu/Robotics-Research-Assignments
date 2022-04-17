@@ -87,7 +87,7 @@ def lidar_callback(msg):
 
         # the range we care about the objects in front of robot
         front_left = msg.ranges[0:fov]
-        front_right = msg.ranges[(359 -fov):359]
+        front_right = msg.ranges[359 - fov:359]
         front = front_right + front_left
         front_mod = modify_lidar_data(front)
         real_obs = sliding_window_detection(front_mod, half_window_size, 3.5)
@@ -106,7 +106,7 @@ def lidar_callback(msg):
         obs_msg.left = filter_object_pose(left_wall, left)
         obs_msg.right = filter_object_pose(right_wall, right)
         obs_msg.back = filter_object_pose(back_wall, back)
-        # rospy.loginfo_throttle(.5,"Wall Detected, Distance = %2.2f m", obs_msg.left)
+        # rospy.loginfo_throttle(.5,"Wall Detected, Distance = %2.2f m", obs_msg.back)
 
         # obs_dis, angular_z = filter_object_pose(real_obs, front_mod)
         # obs_msg.x = obs_dis # * np.cos(angular_z)
