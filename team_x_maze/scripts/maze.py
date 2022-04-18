@@ -299,6 +299,19 @@ def map_callback(msg):
 
 
 def init():
+
+    global cur_heading
+    ini_heading = rospy.get_param("/heading")
+    if ini_heading == "left":
+	cur_heading = 0
+    elif ini_heading == "front":
+	cur_heading = 1
+    elif ini_heading == "right":
+	cur_heading = 2
+    elif ini_heading == "back":
+	cur_heading = 3
+
+
     if sim:
         rospy.Subscriber("/turtlebot_burger/camera/image_raw/compressed", CompressedImage, predict_image, queue_size=1,
                          buff_size=2 ** 24)
