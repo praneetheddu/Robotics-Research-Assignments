@@ -17,7 +17,7 @@ from team_x_maze.msg import Wall
 
 half_window_size = 5
 # obstacle_found = True
-range_max = 3.5
+range_max = 4.5 # 3.5
 detect_range_obs = 0.5  # 0.5
 detect_range_left = 0.25
 fov = 10

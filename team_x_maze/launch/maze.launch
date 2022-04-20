@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>  
-  <arg name="heading" default="left"/>
+  <arg name="heading" default="front"/>
 
   <!-- Lab6 -->
   <param name="heading" type="str" value="$(arg heading)"/>

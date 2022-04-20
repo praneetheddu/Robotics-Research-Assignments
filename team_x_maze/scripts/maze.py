@@ -43,7 +43,7 @@ import time
 ###########################################
 #            Global variables            ##
 ###########################################
-sim = True
+sim = False
 bridge = CvBridge()  # Bridge converts the image from ros to openCV
 DEBUG = False
 # DEBUG = True
@@ -78,7 +78,7 @@ forward_heading = [0, 0, 0, 1]
 backward_heading = [0, 0, 1, 0]
 
 heading = [left_heading, forward_heading, right_heading, backward_heading]
-cur_heading = 0  # left
+cur_heading = 1  # fwd
 
 # goal
 pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
@@ -103,8 +103,6 @@ def check_arrive():
         return True
     # rospy.loginfo("%f, %f, %f",abs(goal.pose.position.x - cur_pos[0]),abs(goal.pose.position.y - cur_pos[1]),abs(ang - cur_ang))
     return False
-
-
 """
 set next goal in map frame
 """
@@ -135,11 +133,11 @@ def set_goal():
             else:  # forward/backward
                 goal.pose.position.y = cur_pos[1] + dist[1] if cur_heading == 1 else cur_pos[1] - dist[1]
                 goal.pose.position.x = cur_pos[0]
-
+            
             # set goal heading direction
             cur_heading = 3 if cur_heading - 1 < 0 else cur_heading - 1
             # goal.pose.orientation = heading[cur_heading]
-
+            
         elif sign_dict[sign] is "Right":
             dist[2] -= goal_offset
             # set goal position
@@ -231,7 +229,9 @@ def predict_image(CompressedImage):
     global sign
     imgBGR = bridge.compressed_imgmsg_to_cv2(CompressedImage, "bgr8")
     # Predict sign here
+    # imageBGR = np.reshape(imageBGR (410, 308, 3))
     sign = knn.predict(imgBGR, debug=DEBUG)
+    rospy.loginfo_throttle(1, "%s Sign Detected", sign_dict[sign])
     # if DEBUG:
     # rospy.loginfo_throttle(1, "Sign predicted = %s", sign_dict[sign])
 
@@ -274,7 +274,7 @@ def odom_callback(msg):
         odom_qua[2] = (msg.pose.pose.orientation.z)
         odom_qua[3] = (msg.pose.pose.orientation.w)
         cur_ang = qua2rpy(odom_qua)
-
+        
         set_goal()
         initial = False
 

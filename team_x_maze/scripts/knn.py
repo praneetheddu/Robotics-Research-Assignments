@@ -17,7 +17,8 @@ import time
 ##########################################
 # model
 # model_path = "/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_maze/model/knnModel"
-model_path = "/home/allen/catkin_ws/src/team_x_maze/model/knnModel"
+# model_path = "/home/allen/catkin_ws/src/team_x_maze/model/knnModel"
+model_path = "/home/rick/catkin_ws/src/team_x_maze/model/knnModel"
 # dir
 trainDirectory = './2022imgs/train_images/'
 testDirectory = './2022imgs/test_images/'
@@ -143,18 +144,20 @@ def predict(img, debug=False, k=5):
         Title_images = 'Original Image'
         Title_resized = 'Image Resized'
         cv.namedWindow( Title_images, cv.WINDOW_AUTOSIZE )
-        
+    #img = cv.resize(img, (raw_w, raw_h))
+    #print("test image before pre-process = ", img.shape)    
     test_img = np.array(preprocess(img))
-
+    #print("test image after pre-process = ", test_img.shape) 
     if debug:
         cv.imshow(Title_images, img)
         cv.imshow(Title_resized, test_img)
         key = cv.waitKey()
         if key==27:    # Esc key to stop
             return
-    
+    #test_img = test_img.astype(np.float32)
     test_img = test_img.flatten().reshape(1,resize_w*resize_h*dimension)
     test_img = test_img.astype(np.float32)
+    #print("test image shape after transformation = ", test_img.shape)
     # test_label = np.int32(lines[i][1])
 
     ret, results, neighbours, dist = model.findNearest(test_img, k)
