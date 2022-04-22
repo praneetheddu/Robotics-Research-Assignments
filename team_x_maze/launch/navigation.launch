@@ -5,7 +5,7 @@
   <arg name="sim" default="false"/>
   <arg name="world" default="maze.launch"/>
   <arg name="sim_map_file" default="$(find team_x_maze)/map/sim_maze.yaml"/>
-  <arg name="real_map_file" default="$(find team_x_maze)/map/maze.yaml"/>
+  <arg name="real_map_file" default="$(find team_x_maze)/map/real_maze.yaml"/>
 
 
   <group unless="$(arg sim)">

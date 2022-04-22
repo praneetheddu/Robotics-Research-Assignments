@@ -15,13 +15,13 @@ from team_x_maze.msg import Wall
 ## VARIABLES DECLARATION AND SETUP
 ####################################
 
-half_window_size = 5
+
 # obstacle_found = True
-range_max = 4.5 # 3.5
+range_max = 3.8 # 3.5
 detect_range_obs = 0.5  # 0.5
 detect_range_left = 0.25
-fov = 10
-
+fov = 8
+half_window_size = fov/2
 pub = rospy.Publisher('/object_pos', Wall, queue_size=1)
 
 
@@ -47,7 +47,7 @@ def sliding_window_detection(ranges, half_window_size, detect_range):
     # print(obs)
     real_obs = []
     #   try to denoise, if obstacles are too small, it more likes noise rather than real obstacle
-    if len(obs) > 5:
+    if len(obs) > 3:
         for i in range(1, len(obs)):
             if obs[i] - obs[i - 1] <= 3:  # these two points represent the same obstacle
                 real_obs.append(obs[i])
@@ -90,23 +90,24 @@ def lidar_callback(msg):
         front_right = msg.ranges[359 - fov:359]
         front = front_right + front_left
         front_mod = modify_lidar_data(front)
-        real_obs = sliding_window_detection(front_mod, half_window_size, 3.5)
+        real_obs = sliding_window_detection(front_mod, half_window_size, range_max)
 
         # Detect other walls
         left = modify_lidar_data(msg.ranges[90 - fov:  90 + fov])
+        # print(np.mean(left))
         right = modify_lidar_data(msg.ranges[270 - fov:270 + fov])
         back = modify_lidar_data(msg.ranges[180 - fov: 180 + fov])
 
-        left_wall = sliding_window_detection(left, half_window_size, 3.5)
-        right_wall = sliding_window_detection(right, half_window_size, 3.5)
-        back_wall = sliding_window_detection(back, half_window_size, 3.5)
+        left_wall = sliding_window_detection(left, half_window_size, range_max)
+        right_wall = sliding_window_detection(right, half_window_size, range_max)
+        back_wall = sliding_window_detection(back, half_window_size, range_max)
 
         # if len(real_obs) > 2:
         obs_msg.front = filter_object_pose(real_obs, front_mod)
         obs_msg.left = filter_object_pose(left_wall, left)
         obs_msg.right = filter_object_pose(right_wall, right)
         obs_msg.back = filter_object_pose(back_wall, back)
-        # rospy.loginfo_throttle(.5,"Wall Detected, Distance = %2.2f m", obs_msg.back)
+        # rospy.loginfo_throttle(.5,"Wall Detected, Distance = %2.2f m", obs_msg.left)
 
         # obs_dis, angular_z = filter_object_pose(real_obs, front_mod)
         # obs_msg.x = obs_dis # * np.cos(angular_z)
