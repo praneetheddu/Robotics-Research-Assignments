@@ -149,6 +149,23 @@ def set_goal():
     global start_time
     global wall_count
 
+    if sign_dict[sign] is "Goal":
+        # Goal finding
+        rospy.loginfo_throttle(1, "Goal has been found!")
+        goal.header.frame_id = "map"
+        goal.pose.position.y = cur_pos[1]
+        goal.pose.position.x = cur_pos[0]
+        goal.pose.orientation.x = heading[3][0]
+        goal.pose.orientation.y = heading[3][1]
+        goal.pose.orientation.z = heading[3][2]
+        goal.pose.orientation.w = heading[3][3]
+        pub.publish(goal)
+        rospy.loginfo_throttle(1, "Target has been set!")
+        while True: 
+            # TODO Check whether the robot is facing the goal
+            rospy.loginfo_throttle(3, "DONEZO!")
+            continue
+
     if check_arrive() or initial:
         initial = False
         goal.header.frame_id = "map"
