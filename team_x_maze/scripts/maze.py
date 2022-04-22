@@ -97,6 +97,7 @@ initial = True
  
  # misc
 start_time = time.time() 
+is_finished = False 
 """
 Check the robot arrival status
 """
@@ -148,6 +149,7 @@ def set_goal():
     global lost_count
     global start_time
     global wall_count
+    global is_finished
 
     if sign_dict[sign] is "Goal":
         # Goal finding
@@ -159,14 +161,17 @@ def set_goal():
         goal.pose.orientation.y = heading[3][1]
         goal.pose.orientation.z = heading[3][2]
         goal.pose.orientation.w = heading[3][3]
-        pub.publish(goal)
-        rospy.loginfo_throttle(1, "Target has been set!")
-        while True: 
-            # TODO Check whether the robot is facing the goal
-            rospy.loginfo_throttle(3, "DONEZO!")
-            continue
+        # pub.publish(goal)
+        
+        rospy.loginfo_throttle(1, "Goal to Target has been set!")
+        is_finished = True
+        return
+        # while True: 
+        #     # TODO Check whether the robot is facing the goal
+        #     rospy.loginfo_throttle(3, "DONEZO!")
+        #     continue
 
-    if check_arrive() or initial:
+    if not is_finished or check_arrive() or initial:
         initial = False
         goal.header.frame_id = "map"
         rospy.loginfo("%s Sign Detected", sign_dict[sign])
@@ -296,19 +301,20 @@ def set_goal():
                 
                 new_heading = euler_to_quaternion(0, 0, yaw)
         
-        if not lost:
-            lost_count = 0
-            goal.pose.orientation.x = heading[cur_heading][0]
-            goal.pose.orientation.y = heading[cur_heading][1]
-            goal.pose.orientation.z = heading[cur_heading][2]
-            goal.pose.orientation.w = heading[cur_heading][3]
-        elif lost and any(new_heading) < 9000:
-            if (time.time() - start_time > 1):
-                start_time = time.time()
-                goal.pose.orientation.x = new_heading[0]
-                goal.pose.orientation.y = new_heading[1]
-                goal.pose.orientation.z = new_heading[2]
-                goal.pose.orientation.w = new_heading[3]
+        if not is_finished:
+            if not lost:
+                lost_count = 0
+                goal.pose.orientation.x = heading[cur_heading][0]
+                goal.pose.orientation.y = heading[cur_heading][1]
+                goal.pose.orientation.z = heading[cur_heading][2]
+                goal.pose.orientation.w = heading[cur_heading][3]
+            elif lost and any(new_heading) < 9000:
+                if (time.time() - start_time > 1):
+                    start_time = time.time()
+                    goal.pose.orientation.x = new_heading[0]
+                    goal.pose.orientation.y = new_heading[1]
+                    goal.pose.orientation.z = new_heading[2]
+                    goal.pose.orientation.w = new_heading[3]
 
         rospy.loginfo("New Goal: (%f, %f), (%f,%f,%f,%f)", goal.pose.position.x, goal.pose.position.y,
                       goal.pose.orientation.x, goal.pose.orientation.y, goal.pose.orientation.z,
