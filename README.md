@@ -5,7 +5,8 @@ This is the course lab of CS/ECE-7785, which final target is to complete a turtl
 
 # Contributors
 Yinuo Wang, Praneeth Eddu
-Jan,2022 - April,2022
+
+Jan,2022 - Apr,2022
 
 # Dependencies
 
