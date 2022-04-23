@@ -204,7 +204,7 @@ if test_flag:
     tic = time.time()
     # load the model
     knn_test = cv.ml.KNearest_create()
-    model = knn_test.load("/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_maze/model/knnModel")
+    model = knn_test.load("/home/allen/catkin_ws/src/team_x_maze/model/knnModel")
     # load test set
     with open(testDirectory + 'test.txt', 'r') as f:
         reader = csv.reader(f)

@@ -92,7 +92,7 @@ wall_count = 0
 # goal
 pub = rospy.Publisher('/move_base_simple/goal', PoseStamped, queue_size=10)
 goal = PoseStamped()
-goal_offset = 0.25
+goal_offset = 0.3
 initial = True
  
  # misc
@@ -160,7 +160,7 @@ def set_goal():
         if dist_to_wall[0] >= 0.6 and not initial: #still having big distance from the wall 
             wall_count = 0
             lost = False
-            dis_tmp = 0.55
+            dis_tmp = 0.45
             rospy.loginfo("Dis to wall: %f, current pos (%f, %f)", dist_to_wall[0], cur_pos[0], cur_pos[1])
             if cur_heading == 0: # facing left now 
                 goal.pose.position.y = cur_pos[1] + (dist_to_wall[0]-dis_tmp)
@@ -308,7 +308,7 @@ def pub_goal():
     global cur_pos
     global cur_ang
     listener = tf.TransformListener()
-    rate = rospy.Rate(1) # prev value = 0.5
+    rate = rospy.Rate(2) # prev value = 0.5
     # start_time = time.time()
     while not rospy.is_shutdown():
         try:
