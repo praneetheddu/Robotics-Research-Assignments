@@ -17,8 +17,8 @@ import time
 ##########################################
 # model
 # model_path = "/home/pran/catkin_ws/src/Robotics-Research-Assignments/team_x_maze/model/knnModel"
-# model_path = "/home/allen/catkin_ws/src/team_x_maze/model/knnModel"
-model_path = "/home/rick/catkin_ws/src/team_x_maze/model/knnModel"
+model_path = "/home/allen/catkin_ws/src/team_x_maze/model/knnModel"
+#model_path = "/home/rick/catkin_ws/src/team_x_maze/model/knnModel"
 # dir
 trainDirectory = './2022imgs/train_images/'
 testDirectory = './2022imgs/test_images/'

@@ -19,7 +19,7 @@ import time
 # dir
 trainDirectory = './2022imgs/train_images/'
 testDirectory = './2022imgs/test_images/'
-
+testDirectory = './HeldoutB/images/'
 # knn
 k = 5
 dimension = 3 # image channel
@@ -182,7 +182,7 @@ if test_flag:
         Title_resized = 'Image Resized'
         cv.namedWindow( Title_images, cv.WINDOW_AUTOSIZE )
     for i in range(len(lines)):
-        original_img = cv.imread(testDirectory+ lines[i][0] + ".jpg", rgb)
+        original_img = cv.imread(testDirectory+ lines[i][0] + ".png", rgb)
         test_img = np.array(preprocess(original_img))
 
         if debug:
