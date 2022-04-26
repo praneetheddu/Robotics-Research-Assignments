@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Lab3 -->
+  <node pkg="team_x_chase_object" type="detect_object.py" name="detect_object" output="screen"/>
+  <!-- node pkg="team_x_chase_object" type="get_object.py" name="get_object" output="screen" / -->
+  <node pkg="team_x_chase_object" type="chase_object.py" name="chase_object" output="screen"/>
+  <!-- <node pkg="team_x_chase_object" type="rotate_robot.py" name="rotate_robot" output="screen"/>  -->
+</launch>

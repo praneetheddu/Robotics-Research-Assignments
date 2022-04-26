@@ -1,0 +1,19 @@
+<package>
+  <description brief="team_x_object_follower">
+
+     7785 robotics research introduction lab2, following object with ras-pi camera.
+
+  </description>
+  <author email="ywang3781@gatech.edu">Yinuo Wang</author>
+  <author email="#####@gatech.edu">Praneeth Erwin Eddu</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/team_x_object_follower</url>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend package="rospy"/>
+  <depend package="roscpp"/>
+  <depend package="sensor_msgs"/>
+  <depend package="std_msgs"/>
+  <depend package="geometry_msgs"/>
+  <exec_depend>turtlebot3_bringup</exec_depend>
+</package>
