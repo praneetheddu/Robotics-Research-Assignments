@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>  
+  <arg name="heading" default="front"/>
+
+  <!-- Lab6 -->
+  <param name="heading" type="str" value="$(arg heading)"/>
+  <node pkg="team_x_maze" type="detect_walls.py" name="wall_detector" output="screen"/>
+  <node pkg="team_x_maze" type="maze.py" name="navigate_maze" output="screen"/>
+
+</launch>

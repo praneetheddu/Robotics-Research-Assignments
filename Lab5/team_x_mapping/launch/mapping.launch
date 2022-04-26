@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)"/>
+  <arg name="world" default="maze.launch"/>
+  <arg name="sim"  default="false"/>
+
+  <group if="$(arg sim)">
+    <!-- gazebo -->
+    <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_$(arg world)">
+        <arg name="model" value="$(arg model)" />
+    </include>
+  </group>
+
+
+    
+  <!-- mapping -->
+  <include file="$(find turtlebot3_slam)/launch/turtlebot3_slam.launch"/>
+  <!-- teleop -->
+  <include file="$(find turtlebot3_teleop)/launch/turtlebot3_teleop_key.launch"/>
+
+
+</launch>
+

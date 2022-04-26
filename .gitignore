@@ -1,5 +1,6 @@
 # project file
 Lab1/output_imgs/
+Eddu_Wang_Lab5/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -116,6 +117,9 @@ venv.bak/
 # Spyder project settings
 .spyderproject
 .spyproject
+
+# Zip
+*.zip
 
 # Rope project settings
 .ropeproject

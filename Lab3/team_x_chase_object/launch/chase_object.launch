@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="model" default="$(env TURTLEBOT3_MODEL)"/>
+  <arg name="sim" default="false"/>
+  <arg name="world" default="empty_world.launch"/>
+
+  <!-- Turtlebot3 -->
+  <!-- joint state publisher -->
+<!--   <include file="$(find turtlebot3_bringup)/launch/turtlebot3_remote.launch" /> -->
+  
+  <group unless="$(arg sim)">
+    <!-- real -->
+    <include file="$(find turtlebot3_bringup)/launch/turtlebot3_robot.launch"/>
+    <include file="$(find turtlebot3_bringup)/launch/turtlebot3_rpicamera.launch"/>
+  </group>
+
+  <group if="$(arg sim)">
+    <!-- gazebo -->
+    <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_$(arg world)">
+      <arg name="model" value="$(arg model)" />
+    </include>
+  </group>
+
+  <!-- Lab3 -->
+<!--   <node pkg="team_x_chase_object" type="detect_object.py" name="detect_object" output="screen"/> -->
+<!--   <node pkg="team_x_chase_object" type="get_object.py" name="get_object" output="screen" /> -->
+<!--   <node pkg="team_x_chase_object" type="chase_object.py" name="chase_object" output="screen"/> -->
+  <!-- <node pkg="team_x_chase_object" type="rotate_robot.py" name="rotate_robot" output="screen"/>  -->
+</launch>
