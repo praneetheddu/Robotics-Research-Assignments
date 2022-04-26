@@ -1,6 +1,8 @@
-# Lab2 Object Follower
+# Lab2 - Object Following
 This is the lab2 package for Gatech ECE/CS7785.
 
+## Introduction
+In this lab, we use Object Detection and PID controller models to identify and track an object.
 ## Configuration
 * (Please add your email into `./manifest.xml` and delete this line)
 * Modify the burger model by following the `../../Auxiliary/turtlebot3_sim_update-master.zip/README.md`

@@ -1,5 +1,6 @@
-# Lab5 Mapping Navigation
-This is the lab5 package for Gatech ECE/CS7785.
+# Lab5 - TurtleBot3 Mapping and Navigation
+## Introduction
+In this lab, we utilize the ROS Navigation stack and turtlebot's SLAM package to map an indoor maze and navigate to waypoints within the map. This lab has been tested within Gazebo simulation environment before demoing in physical world.
 
 ## Configuration
 * (Please add your email into `./manifest.xml` and delete this line)
