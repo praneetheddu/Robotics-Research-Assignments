@@ -2,7 +2,7 @@
 
 ## Introduction
 This lab utilizes [OpenCV's template matching](https://docs.opencv.org/4.x/d4/dc6/tutorial_py_template_matching.html) technique to identify diamonds within playing cards. The pixel locations of bounding box for dimonds are appended to `lab1_gt.txt`
-![Resulting_image](output_imgs/frame0000.jpg)
+![Resulting_image](../media/frame0000.jpg)
 
 ## Procedure
 Install required packages
